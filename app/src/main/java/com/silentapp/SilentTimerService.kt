@@ -14,6 +14,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import java.util.Calendar
 import androidx.core.app.NotificationCompat
 
 class SilentTimerService : Service() {
@@ -141,6 +142,11 @@ class SilentTimerService : Service() {
         val progressMax = (totalDuration / 1000).toInt()
         val progressCurrent = (rem / 1000).toInt()
 
+        val cal = Calendar.getInstance().apply { timeInMillis = endTime }
+        val endHour = cal.get(Calendar.HOUR_OF_DAY)
+        val endMin = cal.get(Calendar.MINUTE)
+        val endTimeStr = String.format("%02d:%02d", endHour, endMin)
+
         val extendIntent = Intent(this, SilentTimerService::class.java).apply {
             action = ACTION_EXTEND
         }
@@ -160,6 +166,7 @@ class SilentTimerService : Service() {
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(modeLabel)
             .setContentText(getString(R.string.notif_remaining, timeStr))
+            .setSubText(getString(R.string.notif_until, endTimeStr))
             .setSmallIcon(android.R.drawable.ic_lock_silent_mode)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
