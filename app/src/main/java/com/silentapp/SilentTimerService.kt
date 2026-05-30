@@ -18,6 +18,7 @@ class SilentTimerService : Service() {
 
     private val handler = Handler(Looper.getMainLooper())
     private var remainingMillis = 0L
+    private var totalMillis = 0L
     private var currentMode = MODE_SILENT
     private var running = false
 
@@ -65,6 +66,7 @@ class SilentTimerService : Service() {
         running = true
         isTimerRunning = true
         remainingMillis = seconds * 1000L
+        totalMillis = remainingMillis
         this@SilentTimerService.remainingMillis = remainingMillis
         currentMode = mode
         activeMode = mode
@@ -75,6 +77,7 @@ class SilentTimerService : Service() {
 
     private fun extendTimer() {
         remainingMillis += 10 * 60 * 1000L
+        totalMillis += 10 * 60 * 1000L
         this@SilentTimerService.remainingMillis = remainingMillis
         updateNotification()
     }
@@ -110,6 +113,8 @@ class SilentTimerService : Service() {
         else String.format("%d:%02d", m, s)
 
         val modeLabel = modeLabel(currentMode)
+        val progressMax = (totalMillis / 1000).toInt()
+        val progressCurrent = (remainingMillis / 1000).toInt()
 
         val extendIntent = Intent(this, SilentTimerService::class.java).apply {
             action = ACTION_EXTEND
@@ -132,6 +137,8 @@ class SilentTimerService : Service() {
             .setContentText(getString(R.string.notif_remaining, timeStr))
             .setSmallIcon(android.R.drawable.ic_lock_silent_mode)
             .setOngoing(true)
+            .setOnlyAlertOnce(true)
+            .setProgress(progressMax, progressCurrent, false)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .addAction(
                 android.R.drawable.ic_input_add,
