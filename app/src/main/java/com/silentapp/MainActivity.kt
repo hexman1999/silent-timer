@@ -7,7 +7,6 @@ import android.content.pm.PackageManager
 import android.content.pm.ShortcutInfo
 import android.content.pm.ShortcutManager
 import android.graphics.drawable.Icon
-import android.media.AudioManager
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
@@ -24,6 +23,7 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.timepicker.MaterialTimePicker
 import com.google.android.material.timepicker.TimeFormat
+import java.util.Calendar
 
 class MainActivity : AppCompatActivity() {
 
@@ -31,12 +31,12 @@ class MainActivity : AppCompatActivity() {
     private var customMode = MODE_SILENT
     private var editMode = false
 
+    private var isUntilMode = false
+    private var untilHour = 0
+    private var untilMinute = 0
+
     private lateinit var presetManager: PresetManager
     private val presets = mutableListOf<Preset>()
-
-    private val audioManager by lazy {
-        getSystemService(AUDIO_SERVICE) as AudioManager
-    }
 
     private val handler = Handler(Looper.getMainLooper())
     private val tickRunnable = object : Runnable {
@@ -98,103 +98,92 @@ class MainActivity : AppCompatActivity() {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
                 != PackageManager.PERMISSION_GRANTED
             ) {
-                requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 100)
+                requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 0)
             }
         }
     }
 
     private fun setupEditButton() {
-        findViewById<MaterialButton>(R.id.btnEditPresets).setOnClickListener {
+        findViewById<View>(R.id.btnEditPresets).setOnClickListener {
             editMode = !editMode
             renderPresets()
+            val btn = it as MaterialButton
+            btn.text = if (editMode) getString(R.string.done) else getString(R.string.edit)
         }
     }
 
     private fun renderPresets() {
         val container = findViewById<LinearLayout>(R.id.presetsContainer)
         container.removeAllViews()
-        val inflater = LayoutInflater.from(this)
 
-        val btn = findViewById<MaterialButton>(R.id.btnEditPresets)
-        btn.text = if (editMode) getString(R.string.done) else getString(R.string.edit)
+        var row = createRow(container)
+        var countInRow = 0
 
-        val rows = presets.chunked(2)
-        for (rowPresets in rows) {
-            val row = LinearLayout(this).apply {
-                layoutParams = ViewGroup.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT
-                )
-                orientation = LinearLayout.HORIZONTAL
+        for (preset in presets) {
+            if (countInRow >= 3) {
+                row = createRow(container)
+                countInRow = 0
             }
-
-            for (preset in rowPresets) {
-                val card = inflater.inflate(R.layout.item_preset, row, false) as MaterialCardView
-                card.layoutParams = LinearLayout.LayoutParams(0, 100.dp(), 1f).apply {
-                    val m = 4.dp()
-                    setMargins(m, 0, m, 0)
-                }
-
-                card.findViewById<TextView>(R.id.presetLabel).text = preset.label
-                card.findViewById<TextView>(R.id.presetSub).text = preset.subText() + " · " + preset.modeLabel()
-
-                if (editMode) {
-                    val deleteBtn = card.findViewById<View>(R.id.presetDeleteBtn)
-                    deleteBtn.visibility = View.VISIBLE
-                    deleteBtn.setOnClickListener {
-                        presets.remove(preset)
-                        presetManager.savePresets(presets)
-                        renderPresets()
-                        updateShortcuts()
-                    }
-                    card.setOnClickListener {
-                        showPresetDialog(preset)
-                    }
-                    card.foreground = null
-                } else {
-                    card.findViewById<View>(R.id.presetDeleteBtn).visibility = View.GONE
-                    card.setOnClickListener {
-                        startTimer(preset.totalSeconds, preset.mode, preset.label)
-                    }
-                    card.isClickable = true
-                    card.isFocusable = true
-                }
-                row.addView(card)
-            }
-
-            if (rowPresets.size == 1) {
-                val spacer = android.widget.Space(this).apply {
-                    layoutParams = LinearLayout.LayoutParams(0, 0, 1f)
-                }
-                row.addView(spacer)
-            }
-
-            container.addView(row)
-
-            val params = row.layoutParams as ViewGroup.MarginLayoutParams
-            params.bottomMargin = 8.dp()
-            row.layoutParams = params
+            row.addView(createPresetCard(preset))
+            countInRow++
         }
 
-        if (editMode) {
-            val addRow = LinearLayout(this).apply {
-                layoutParams = ViewGroup.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT
-                )
-                orientation = LinearLayout.HORIZONTAL
-            }
-
-            val addCard = inflater.inflate(R.layout.item_preset_add, container, false) as MaterialCardView
-            addCard.layoutParams = LinearLayout.LayoutParams(0, 100.dp(), 1f)
-            addCard.setOnClickListener { showPresetDialog(null) }
-
-            addRow.addView(addCard)
-            addRow.addView(android.widget.Space(this).apply {
-                layoutParams = LinearLayout.LayoutParams(0, 0, 1f)
-            })
-            container.addView(addRow)
+        if (countInRow >= 3) {
+            row = createRow(container)
+            countInRow = 0
         }
+        row.addView(createAddCard())
+    }
+
+    private fun createRow(container: LinearLayout): LinearLayout {
+        return LinearLayout(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+            orientation = LinearLayout.HORIZONTAL
+            container.addView(this)
+        }
+    }
+
+    private fun createPresetCard(preset: Preset): View {
+        val card = LayoutInflater.from(this).inflate(R.layout.item_preset, null) as MaterialCardView
+        card.layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        val lp = card.layoutParams as ViewGroup.MarginLayoutParams
+        lp.setMargins(0, 0, 4.dp(), 8.dp())
+
+        card.findViewById<TextView>(R.id.presetLabel).text = preset.label
+        card.findViewById<TextView>(R.id.presetSubtext).text = "${preset.subText()} · ${preset.modeLabel()}"
+
+        val deleteOverlay = card.findViewById<View>(R.id.deleteOverlay)
+        deleteOverlay.visibility = if (editMode) View.VISIBLE else View.GONE
+
+        card.setOnClickListener {
+            if (editMode) {
+                showPresetDialog(preset)
+            } else {
+                startTimer(preset.totalSeconds, preset.mode, preset.label)
+            }
+        }
+        deleteOverlay.setOnClickListener { showPresetDialog(preset) }
+        return card
+    }
+
+    private fun createAddCard(): View {
+        val addCard = LayoutInflater.from(this).inflate(R.layout.item_preset_add, null) as MaterialCardView
+        addCard.layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        val lp = addCard.layoutParams as ViewGroup.MarginLayoutParams
+        lp.setMargins(0, 0, 0, 8.dp())
+
+        addCard.findViewById<TextView>(R.id.addLabel).text = getString(com.google.android.material.R.string.mtrl_picker_add)
+        addCard.setOnClickListener {
+            val remainingRow = (presets.size + 1) % 3
+            if (remainingRow != 0) {
+                addCard.visibility = View.GONE
+            }
+            showPresetDialog(null)
+        }
+        return addCard
     }
 
     private fun showPresetDialog(preset: Preset?) {
@@ -224,10 +213,12 @@ class MainActivity : AppCompatActivity() {
         findViewById<View>(R.id.btnSelectTime).setOnClickListener { showTimePicker() }
 
         findViewById<View>(R.id.btnSecInc).setOnClickListener {
+            if (isUntilMode) return@setOnClickListener
             selectedSeconds = (selectedSeconds + 10).coerceAtMost(35999)
             updateCustomTimerDisplay()
         }
         findViewById<View>(R.id.btnSecDec).setOnClickListener {
+            if (isUntilMode) return@setOnClickListener
             selectedSeconds = (selectedSeconds - 10).coerceAtLeast(0)
             updateCustomTimerDisplay()
         }
@@ -243,6 +234,11 @@ class MainActivity : AppCompatActivity() {
         findViewById<View>(R.id.btnSetDndCustom).setOnClickListener {
             customMode = MODE_DND
             applyCustomTimer()
+        }
+
+        findViewById<View>(R.id.btnUntil).setOnClickListener {
+            isUntilMode = true
+            showTimePicker()
         }
     }
 
@@ -260,6 +256,28 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showTimePicker() {
+        if (isUntilMode) {
+            val now = Calendar.getInstance()
+            val picker = MaterialTimePicker.Builder()
+                .setTimeFormat(TimeFormat.CLOCK_24H)
+                .setHour(now.get(Calendar.HOUR_OF_DAY))
+                .setMinute(now.get(Calendar.MINUTE))
+                .setTitleText(R.string.until)
+                .build()
+            picker.addOnPositiveButtonClickListener {
+                untilHour = picker.hour % 24
+                untilMinute = picker.minute % 60
+                selectedSeconds = computeUntilSeconds(untilHour, untilMinute)
+                updateCustomTimerDisplay()
+            }
+            picker.addOnNegativeButtonClickListener {
+                isUntilMode = false
+                updateCustomTimerDisplay()
+            }
+            picker.show(supportFragmentManager, "untilPicker")
+            return
+        }
+
         val h = selectedSeconds / 3600
         val m = (selectedSeconds % 3600) / 60
         val picker = MaterialTimePicker.Builder()
@@ -278,23 +296,50 @@ class MainActivity : AppCompatActivity() {
         picker.show(supportFragmentManager, "timePicker")
     }
 
+    private fun computeUntilSeconds(hour: Int, minute: Int): Int {
+        val now = Calendar.getInstance()
+        val target = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, hour)
+            set(Calendar.MINUTE, minute)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+        if (target <= now) {
+            target.add(Calendar.DAY_OF_MONTH, 1)
+        }
+        return ((target.timeInMillis - now.timeInMillis) / 1000).toInt()
+    }
+
     private fun updateCustomTimerDisplay() {
-        val h = selectedSeconds / 3600
-        val m = (selectedSeconds % 3600) / 60
-        val s = selectedSeconds % 60
-        findViewById<TextView>(R.id.customTimerText).text =
-            String.format("%02d:%02d", h * 60 + m, s)
-        findViewById<TextView>(R.id.secondsDisplay).text =
-            String.format("%02d", s)
+        if (isUntilMode) {
+            findViewById<TextView>(R.id.customTimerText).text =
+                String.format(getString(R.string.until_format), untilHour, untilMinute)
+            findViewById<TextView>(R.id.secondsDisplay).text =
+                getString(R.string.until_duration, formatDuration(selectedSeconds))
+        } else {
+            val h = selectedSeconds / 3600
+            val m = (selectedSeconds % 3600) / 60
+            val s = selectedSeconds % 60
+            findViewById<TextView>(R.id.customTimerText).text =
+                String.format("%02d:%02d", h * 60 + m, s)
+            findViewById<TextView>(R.id.secondsDisplay).text =
+                String.format("%02d", s)
+        }
     }
 
     private fun applyCustomTimer() {
+        if (isUntilMode) {
+            selectedSeconds = computeUntilSeconds(untilHour, untilMinute)
+        }
         if (selectedSeconds <= 0) {
             Toast.makeText(this, R.string.select_time_first, Toast.LENGTH_SHORT).show()
             return
         }
         val label = modeLabel(customMode)
         startTimer(selectedSeconds, customMode, label)
+        isUntilMode = false
+        selectedSeconds = 0
+        updateCustomTimerDisplay()
     }
 
     private fun startTimer(seconds: Int, mode: Int, label: String) {

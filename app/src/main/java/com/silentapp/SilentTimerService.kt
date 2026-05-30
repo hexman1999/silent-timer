@@ -5,8 +5,10 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.media.AudioManager
 import android.os.Build
 import android.os.Handler
@@ -21,6 +23,7 @@ class SilentTimerService : Service() {
     private var totalMillis = 0L
     private var currentMode = MODE_SILENT
     private var running = false
+    private var expectedRingerMode = AudioManager.RINGER_MODE_NORMAL
 
     private val tickRunnable = object : Runnable {
         override fun run() {
@@ -36,9 +39,28 @@ class SilentTimerService : Service() {
         }
     }
 
+    private val ringerReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            if (!running) return
+            val audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
+            if (audioManager.ringerMode != expectedRingerMode) {
+                stopTimer()
+            }
+        }
+    }
+
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
+        registerReceiver(
+            ringerReceiver,
+            IntentFilter(AudioManager.RINGER_MODE_CHANGED_ACTION)
+        )
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        unregisterReceiver(ringerReceiver)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -46,6 +68,7 @@ class SilentTimerService : Service() {
             ACTION_START -> {
                 val seconds = intent.getIntExtra(EXTRA_SECONDS, 0)
                 val mode = intent.getIntExtra(EXTRA_MODE, MODE_SILENT)
+                expectedRingerMode = RingerModeManager.actualRingerMode(mode)
                 RingerModeManager.applyMode(this, mode)
                 startTimer(seconds, mode)
             }

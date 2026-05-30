@@ -49,6 +49,13 @@ object RingerModeManager {
         }
     }
 
+    fun actualRingerMode(mode: Int): Int = when (mode) {
+        MODE_DND -> AudioManager.RINGER_MODE_NORMAL
+        MODE_SILENT -> AudioManager.RINGER_MODE_SILENT
+        MODE_VIBRATE -> AudioManager.RINGER_MODE_VIBRATE
+        else -> AudioManager.RINGER_MODE_NORMAL
+    }
+
     fun requestPolicyPermission(context: Context) {
         val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         if (!nm.isNotificationPolicyAccessGranted) {

@@ -18,6 +18,9 @@
     <string name="select_time_first">Please select a duration first</string>
     <string name="perm_toast">Please grant Do Not Disturb access to use this app</string>
     <string name="timer_started">Timer started</string>
+    <string name="until">Until</string>
+    <string name="until_format">Until %02d:%02d</string>
+    <string name="until_duration">(%s)</string>
 
     <string name="tile_silent">Silent</string>
     <string name="tile_vibrate">Vibrate</string>
