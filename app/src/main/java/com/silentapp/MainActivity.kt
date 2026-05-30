@@ -415,7 +415,8 @@ class MainActivity : AppCompatActivity() {
 
         if (SilentTimerService.isTimerRunning) {
             card.visibility = View.VISIBLE
-            val totalSecs = SilentTimerService.remainingMillis / 1000
+            val rem = SilentTimerService.endTime - System.currentTimeMillis()
+            val totalSecs = (rem / 1000).coerceAtLeast(0)
             val h = totalSecs / 3600
             val m = (totalSecs % 3600) / 60
             val s = totalSecs % 60

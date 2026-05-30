@@ -19,18 +19,19 @@ import androidx.core.app.NotificationCompat
 class SilentTimerService : Service() {
 
     private val handler = Handler(Looper.getMainLooper())
-    private var remainingMillis = 0L
-    private var totalMillis = 0L
+    private var endTime = 0L
+    private var totalDuration = 0L
     private var currentMode = MODE_SILENT
     private var running = false
     private var expectedRingerMode = AudioManager.RINGER_MODE_NORMAL
 
+    private val remaining: Long
+        get() = (endTime - System.currentTimeMillis()).coerceAtLeast(0)
+
     private val tickRunnable = object : Runnable {
         override fun run() {
             if (!running) return
-            remainingMillis -= 1000
-            this@SilentTimerService.remainingMillis = remainingMillis
-            if (remainingMillis <= 0) {
+            if (remaining <= 0) {
                 onTimerFinished()
                 return
             }
@@ -88,20 +89,20 @@ class SilentTimerService : Service() {
         handler.removeCallbacks(tickRunnable)
         running = true
         isTimerRunning = true
-        remainingMillis = seconds * 1000L
-        totalMillis = remainingMillis
-        this@SilentTimerService.remainingMillis = remainingMillis
+        endTime = System.currentTimeMillis() + seconds * 1000L
+        totalDuration = seconds * 1000L
         currentMode = mode
         activeMode = mode
+        this@SilentTimerService.endTime = endTime
         updateNotification()
         handler.postDelayed(tickRunnable, 1000)
         startForeground(NOTIFICATION_ID, buildNotification())
     }
 
     private fun extendTimer() {
-        remainingMillis += 10 * 60 * 1000L
-        totalMillis += 10 * 60 * 1000L
-        this@SilentTimerService.remainingMillis = remainingMillis
+        endTime += 10 * 60 * 1000L
+        totalDuration += 10 * 60 * 1000L
+        this@SilentTimerService.endTime = endTime
         updateNotification()
     }
 
@@ -128,7 +129,8 @@ class SilentTimerService : Service() {
     }
 
     private fun buildNotification(): Notification {
-        val totalSecs = remainingMillis / 1000
+        val rem = remaining
+        val totalSecs = rem / 1000
         val h = totalSecs / 3600
         val m = (totalSecs % 3600) / 60
         val s = totalSecs % 60
@@ -136,8 +138,8 @@ class SilentTimerService : Service() {
         else String.format("%d:%02d", m, s)
 
         val modeLabel = modeLabel(currentMode)
-        val progressMax = (totalMillis / 1000).toInt()
-        val progressCurrent = (remainingMillis / 1000).toInt()
+        val progressMax = (totalDuration / 1000).toInt()
+        val progressCurrent = (rem / 1000).toInt()
 
         val extendIntent = Intent(this, SilentTimerService::class.java).apply {
             action = ACTION_EXTEND
@@ -205,7 +207,7 @@ class SilentTimerService : Service() {
 
         var isTimerRunning = false
             private set
-        var remainingMillis = 0L
+        var endTime = 0L
             private set
         var activeMode = MODE_SILENT
             private set
