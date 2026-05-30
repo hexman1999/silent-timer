@@ -6,6 +6,15 @@ import android.media.AudioManager
 
 object RingerModeManager {
 
+    fun applyMode(context: Context, mode: Int) {
+        when (mode) {
+            MODE_DND -> setDnd(context)
+            MODE_SILENT -> setSilent(context)
+            MODE_VIBRATE -> setVibrate(context)
+            MODE_NORMAL -> setNormal(context)
+        }
+    }
+
     fun setSilent(context: Context) {
         val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
         audioManager.ringerMode = AudioManager.RINGER_MODE_SILENT
@@ -21,14 +30,23 @@ object RingerModeManager {
         audioManager.ringerMode = AudioManager.RINGER_MODE_NORMAL
     }
 
-    fun getCurrentMode(context: Context): Int {
-        val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-        return audioManager.ringerMode
+    fun setDnd(context: Context) {
+        val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        if (nm.isNotificationPolicyAccessGranted) {
+            nm.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_NONE)
+        }
     }
 
-    fun isDndActive(context: Context): Boolean {
+    fun getCurrentMode(context: Context): Int {
+        val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
         val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        return nm.isNotificationPolicyAccessGranted && nm.currentInterruptionFilter == NotificationManager.INTERRUPTION_FILTER_NONE
+        return if (nm.isNotificationPolicyAccessGranted &&
+            nm.currentInterruptionFilter == NotificationManager.INTERRUPTION_FILTER_NONE
+        ) {
+            MODE_DND
+        } else {
+            audioManager.ringerMode
+        }
     }
 
     fun requestPolicyPermission(context: Context) {

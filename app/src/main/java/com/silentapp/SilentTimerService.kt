@@ -18,7 +18,7 @@ class SilentTimerService : Service() {
 
     private val handler = Handler(Looper.getMainLooper())
     private var remainingMillis = 0L
-    private var currentMode = AudioManager.RINGER_MODE_SILENT
+    private var currentMode = MODE_SILENT
     private var running = false
 
     private val tickRunnable = object : Runnable {
@@ -44,9 +44,8 @@ class SilentTimerService : Service() {
         when (intent?.action) {
             ACTION_START -> {
                 val seconds = intent.getIntExtra(EXTRA_SECONDS, 0)
-                val mode = intent.getIntExtra(EXTRA_MODE, AudioManager.RINGER_MODE_SILENT)
-                val audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
-                audioManager.ringerMode = mode
+                val mode = intent.getIntExtra(EXTRA_MODE, MODE_SILENT)
+                RingerModeManager.applyMode(this, mode)
                 startTimer(seconds, mode)
             }
             ACTION_EXTEND -> {
@@ -71,7 +70,6 @@ class SilentTimerService : Service() {
         activeMode = mode
         updateNotification()
         handler.postDelayed(tickRunnable, 1000)
-
         startForeground(NOTIFICATION_ID, buildNotification())
     }
 
@@ -85,8 +83,7 @@ class SilentTimerService : Service() {
         running = false
         isTimerRunning = false
         handler.removeCallbacks(tickRunnable)
-        val audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
-        audioManager.ringerMode = AudioManager.RINGER_MODE_NORMAL
+        RingerModeManager.applyMode(this, MODE_NORMAL)
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
     }
@@ -94,8 +91,7 @@ class SilentTimerService : Service() {
     private fun onTimerFinished() {
         running = false
         isTimerRunning = false
-        val audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
-        audioManager.ringerMode = AudioManager.RINGER_MODE_NORMAL
+        RingerModeManager.applyMode(this, MODE_NORMAL)
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
     }
@@ -113,11 +109,7 @@ class SilentTimerService : Service() {
         val timeStr = if (h > 0) String.format("%d:%02d:%02d", h, m, s)
         else String.format("%d:%02d", m, s)
 
-        val modeLabel = when (currentMode) {
-            AudioManager.RINGER_MODE_SILENT -> getString(R.string.notif_silent)
-            AudioManager.RINGER_MODE_VIBRATE -> getString(R.string.notif_vibrate)
-            else -> getString(R.string.notif_silent)
-        }
+        val modeLabel = modeLabel(currentMode)
 
         val extendIntent = Intent(this, SilentTimerService::class.java).apply {
             action = ACTION_EXTEND
@@ -185,7 +177,7 @@ class SilentTimerService : Service() {
             private set
         var remainingMillis = 0L
             private set
-        var activeMode = AudioManager.RINGER_MODE_SILENT
+        var activeMode = MODE_SILENT
             private set
     }
 }

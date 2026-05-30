@@ -113,6 +113,12 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Vibrate" />
+
+        <com.google.android.material.radiobutton.MaterialRadioButton
+            android:id="@+id/presetModeDnd"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="DND" />
     </RadioGroup>
 
     <LinearLayout

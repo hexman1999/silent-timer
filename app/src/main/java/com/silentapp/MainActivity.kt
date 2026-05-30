@@ -1,8 +1,12 @@
 package com.silentapp
 
 import android.Manifest
+import android.app.NotificationManager
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.pm.ShortcutInfo
+import android.content.pm.ShortcutManager
+import android.graphics.drawable.Icon
 import android.media.AudioManager
 import android.os.Build
 import android.os.Bundle
@@ -24,7 +28,7 @@ import com.google.android.material.timepicker.TimeFormat
 class MainActivity : AppCompatActivity() {
 
     private var selectedSeconds = 0
-    private var customMode = AudioManager.RINGER_MODE_SILENT
+    private var customMode = MODE_SILENT
     private var editMode = false
 
     private lateinit var presetManager: PresetManager
@@ -55,17 +59,38 @@ class MainActivity : AppCompatActivity() {
         setupActiveTimerCard()
         setupEditButton()
         renderPresets()
+        updateShortcuts()
+
+        handleShortcutIntent(intent)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleShortcutIntent(intent)
     }
 
     override fun onResume() {
         super.onResume()
         updateDashboard()
+        presets.clear()
+        presets.addAll(presetManager.loadPresets())
+        renderPresets()
+        updateShortcuts()
         handler.post(tickRunnable)
     }
 
     override fun onPause() {
         super.onPause()
         handler.removeCallbacks(tickRunnable)
+    }
+
+    private fun handleShortcutIntent(intent: Intent) {
+        val seconds = intent.getIntExtra(EXTRA_SHORTCUT_SECONDS, 0)
+        val mode = intent.getIntExtra(EXTRA_SHORTCUT_MODE, -1)
+        val label = intent.getStringExtra(EXTRA_SHORTCUT_LABEL)
+        if (seconds > 0 && mode >= 0 && label != null) {
+            startTimer(seconds, mode, label)
+        }
     }
 
     private fun checkPermissions() {
@@ -105,13 +130,13 @@ class MainActivity : AppCompatActivity() {
 
             for (preset in rowPresets) {
                 val card = inflater.inflate(R.layout.item_preset, row, false) as MaterialCardView
-                card.layoutParams = LinearLayout.LayoutParams(0, 88.dp(), 1f).apply {
+                card.layoutParams = LinearLayout.LayoutParams(0, 100.dp(), 1f).apply {
                     val m = 4.dp()
                     setMargins(m, 0, m, 0)
                 }
 
                 card.findViewById<TextView>(R.id.presetLabel).text = preset.label
-                card.findViewById<TextView>(R.id.presetSub).text = preset.subText()
+                card.findViewById<TextView>(R.id.presetSub).text = preset.subText() + " · " + preset.modeLabel()
 
                 if (editMode) {
                     val deleteBtn = card.findViewById<View>(R.id.presetDeleteBtn)
@@ -120,6 +145,7 @@ class MainActivity : AppCompatActivity() {
                         presets.remove(preset)
                         presetManager.savePresets(presets)
                         renderPresets()
+                        updateShortcuts()
                     }
                     card.setOnClickListener {
                         showPresetDialog(preset)
@@ -160,7 +186,7 @@ class MainActivity : AppCompatActivity() {
             }
 
             val addCard = inflater.inflate(R.layout.item_preset_add, container, false) as MaterialCardView
-            addCard.layoutParams = LinearLayout.LayoutParams(0, 88.dp(), 1f)
+            addCard.layoutParams = LinearLayout.LayoutParams(0, 100.dp(), 1f)
             addCard.setOnClickListener { showPresetDialog(null) }
 
             addRow.addView(addCard)
@@ -182,11 +208,13 @@ class MainActivity : AppCompatActivity() {
             }
             presetManager.savePresets(presets)
             renderPresets()
+            updateShortcuts()
         }
         dialog.setOnDelete { delPreset ->
             presets.removeAll { it.id == delPreset.id }
             presetManager.savePresets(presets)
             renderPresets()
+            updateShortcuts()
         }
         dialog.show(supportFragmentManager, "presetEdit")
     }
@@ -196,7 +224,7 @@ class MainActivity : AppCompatActivity() {
         findViewById<View>(R.id.btnSelectTime).setOnClickListener { showTimePicker() }
 
         findViewById<View>(R.id.btnSecInc).setOnClickListener {
-            selectedSeconds = (selectedSeconds + 10).coerceAtMost(3599)
+            selectedSeconds = (selectedSeconds + 10).coerceAtMost(35999)
             updateCustomTimerDisplay()
         }
         findViewById<View>(R.id.btnSecDec).setOnClickListener {
@@ -205,11 +233,15 @@ class MainActivity : AppCompatActivity() {
         }
 
         findViewById<View>(R.id.btnSetSilentCustom).setOnClickListener {
-            customMode = AudioManager.RINGER_MODE_SILENT
+            customMode = MODE_SILENT
             applyCustomTimer()
         }
         findViewById<View>(R.id.btnSetVibrateCustom).setOnClickListener {
-            customMode = AudioManager.RINGER_MODE_VIBRATE
+            customMode = MODE_VIBRATE
+            applyCustomTimer()
+        }
+        findViewById<View>(R.id.btnSetDndCustom).setOnClickListener {
+            customMode = MODE_DND
             applyCustomTimer()
         }
     }
@@ -239,7 +271,7 @@ class MainActivity : AppCompatActivity() {
 
         picker.addOnPositiveButtonClickListener {
             val newSeconds = (picker.hour % 24) * 3600 + (picker.minute % 60) * 60 + (selectedSeconds % 60)
-            selectedSeconds = newSeconds.coerceAtMost(3599)
+            selectedSeconds = newSeconds.coerceAtMost(35999)
             updateCustomTimerDisplay()
         }
 
@@ -261,23 +293,50 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, R.string.select_time_first, Toast.LENGTH_SHORT).show()
             return
         }
-        val label = if (customMode == AudioManager.RINGER_MODE_SILENT) "Silent" else "Vibrate"
+        val label = modeLabel(customMode)
         startTimer(selectedSeconds, customMode, label)
     }
 
     private fun startTimer(seconds: Int, mode: Int, label: String) {
+        val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        if (mode == MODE_DND && !nm.isNotificationPolicyAccessGranted) {
+            RingerModeManager.requestPolicyPermission(this)
+            Toast.makeText(this, "DND access required", Toast.LENGTH_LONG).show()
+            return
+        }
+
         val intent = Intent(this, SilentTimerService::class.java).apply {
             action = SilentTimerService.ACTION_START
             putExtra(SilentTimerService.EXTRA_SECONDS, seconds)
             putExtra(SilentTimerService.EXTRA_MODE, mode)
         }
         ContextCompat.startForegroundService(this, intent)
-        val display = when {
-            seconds >= 3600 -> "${seconds / 3600}h ${(seconds % 3600) / 60}m ${seconds % 60}s"
-            seconds >= 60 -> "${seconds / 60}m ${seconds % 60}s"
-            else -> "${seconds}s"
-        }
+        val display = formatDuration(seconds)
         Toast.makeText(this, "$label for $display", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun updateShortcuts() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N_MR1) return
+        val manager = getSystemService(ShortcutManager::class.java) ?: return
+
+        val shortcuts = presets.take(5).mapIndexed { i, preset ->
+            val shortcutIntent = Intent(this, MainActivity::class.java).apply {
+                action = Intent.ACTION_VIEW
+                putExtra(EXTRA_SHORTCUT_SECONDS, preset.totalSeconds)
+                putExtra(EXTRA_SHORTCUT_MODE, preset.mode)
+                putExtra(EXTRA_SHORTCUT_LABEL, preset.label)
+                flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+
+            ShortcutInfo.Builder(this, "preset_$i")
+                .setShortLabel(preset.label)
+                .setLongLabel("${preset.label} · ${preset.subText()} · ${preset.modeLabel()}")
+                .setIcon(Icon.createWithResource(this, android.R.drawable.ic_lock_silent_mode))
+                .setIntent(shortcutIntent)
+                .build()
+        }
+
+        manager.dynamicShortcuts = shortcuts
     }
 
     private fun updateDashboard() {
@@ -286,21 +345,25 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateStatusCard() {
-        val mode = audioManager.ringerMode
+        val mode = RingerModeManager.getCurrentMode(this)
         val icon = findViewById<TextView>(R.id.statusIcon)
         val label = findViewById<TextView>(R.id.statusLabel)
         when (mode) {
-            AudioManager.RINGER_MODE_NORMAL -> {
+            MODE_NORMAL -> {
                 icon.text = "\uD83D\uDD14"
                 label.text = getString(R.string.status_normal)
             }
-            AudioManager.RINGER_MODE_SILENT -> {
+            MODE_SILENT -> {
                 icon.text = "\uD83D\uDD15"
                 label.text = getString(R.string.status_silent)
             }
-            AudioManager.RINGER_MODE_VIBRATE -> {
+            MODE_VIBRATE -> {
                 icon.text = "\uD83D\uDCF3"
                 label.text = getString(R.string.status_vibrate)
+            }
+            MODE_DND -> {
+                icon.text = "\uD83D\uDCF4"
+                label.text = "DND"
             }
         }
     }
@@ -321,11 +384,7 @@ class MainActivity : AppCompatActivity() {
             else
                 String.format("%d:%02d", m, s)
 
-            val modeLabel = when (SilentTimerService.activeMode) {
-                AudioManager.RINGER_MODE_SILENT -> getString(R.string.status_silent)
-                AudioManager.RINGER_MODE_VIBRATE -> getString(R.string.status_vibrate)
-                else -> ""
-            }
+            val modeLabel = modeLabel(SilentTimerService.activeMode)
             title.text = "$modeLabel — ${getString(R.string.active_timer)}"
         } else {
             card.visibility = View.GONE
@@ -334,4 +393,10 @@ class MainActivity : AppCompatActivity() {
 
     private fun Int.dp(): Int =
         (this * resources.displayMetrics.density).toInt()
+
+    companion object {
+        const val EXTRA_SHORTCUT_SECONDS = "shortcut_seconds"
+        const val EXTRA_SHORTCUT_MODE = "shortcut_mode"
+        const val EXTRA_SHORTCUT_LABEL = "shortcut_label"
+    }
 }

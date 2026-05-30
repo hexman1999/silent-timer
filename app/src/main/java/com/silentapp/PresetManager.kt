@@ -6,13 +6,36 @@ import android.media.AudioManager
 import org.json.JSONArray
 import org.json.JSONObject
 
+const val MODE_SILENT = AudioManager.RINGER_MODE_SILENT
+const val MODE_VIBRATE = AudioManager.RINGER_MODE_VIBRATE
+const val MODE_NORMAL = AudioManager.RINGER_MODE_NORMAL
+const val MODE_DND = 10
+
+fun formatDuration(seconds: Int): String = when {
+    seconds >= 3600 -> "${seconds / 3600}h ${(seconds % 3600) / 60}m ${seconds % 60}s"
+    seconds >= 60 -> "${seconds / 60}m ${seconds % 60}s"
+    else -> "${seconds}s"
+}
+
+fun modeLabel(mode: Int): String = when (mode) {
+    MODE_SILENT -> "Silent"
+    MODE_VIBRATE -> "Vibrate"
+    MODE_DND -> "DND"
+    else -> "Sound"
+}
+
 data class Preset(
     val label: String,
     val totalSeconds: Int,
     val mode: Int,
     val id: String = java.util.UUID.randomUUID().toString()
 ) : java.io.Serializable {
-    fun modeLabel(): String = if (mode == AudioManager.RINGER_MODE_SILENT) "Silent" else "Vibrate"
+    fun modeLabel(): String = when (mode) {
+        MODE_SILENT -> "Silent"
+        MODE_VIBRATE -> "Vibrate"
+        MODE_DND -> "DND"
+        else -> "Sound"
+    }
 
     fun subText(): String {
         val h = totalSeconds / 3600
@@ -73,10 +96,10 @@ class PresetManager(context: Context) {
         private const val KEY_PRESETS = "presets"
 
         fun defaultPresets() = listOf(
-            Preset("Silent", 1800, AudioManager.RINGER_MODE_SILENT),
-            Preset("Vibrate", 900, AudioManager.RINGER_MODE_VIBRATE),
-            Preset("Silent", 3600, AudioManager.RINGER_MODE_SILENT),
-            Preset("Vibrate", 300, AudioManager.RINGER_MODE_VIBRATE),
+            Preset("Silent", 1800, MODE_SILENT),
+            Preset("Vibrate", 900, MODE_VIBRATE),
+            Preset("DND", 3600, MODE_DND),
+            Preset("Vibrate", 300, MODE_VIBRATE),
         )
     }
 }

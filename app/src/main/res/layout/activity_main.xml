@@ -225,20 +225,28 @@
                             android:layout_marginTop="8dp"
                             android:orientation="horizontal">
 
-                            <com.google.android.material.button.MaterialButton
-                                android:id="@+id/btnSetSilentCustom"
-                                style="@style/Widget.Material3.Button"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginEnd="4dp"
-                                android:text="@string/set_silent" />
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnSetSilentCustom"
+                            style="@style/Widget.Material3.Button"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="2dp"
+                            android:text="@string/set_silent" />
 
-                            <com.google.android.material.button.MaterialButton
-                                android:id="@+id/btnSetVibrateCustom"
-                                style="@style/Widget.Material3.Button"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="@string/set_vibrate" />
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnSetVibrateCustom"
+                            style="@style/Widget.Material3.Button"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="2dp"
+                            android:text="@string/set_vibrate" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnSetDndCustom"
+                            style="@style/Widget.Material3.Button"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="DND" />
                         </LinearLayout>
                     </LinearLayout>
                 </LinearLayout>

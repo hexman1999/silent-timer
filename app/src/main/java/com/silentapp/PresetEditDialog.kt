@@ -21,7 +21,7 @@ class PresetEditDialog : DialogFragment() {
     private var onDelete: ((Preset) -> Unit)? = null
 
     private var totalSeconds = 0
-    private var selectedMode = AudioManager.RINGER_MODE_SILENT
+    private var selectedMode = MODE_SILENT
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -44,14 +44,15 @@ class PresetEditDialog : DialogFragment() {
             nameInput.setText(p.label)
             totalSeconds = p.totalSeconds
             selectedMode = p.mode
-            modeGroup.check(
-                if (p.mode == AudioManager.RINGER_MODE_SILENT) R.id.presetModeSilent
-                else R.id.presetModeVibrate
-            )
+            when (p.mode) {
+                MODE_SILENT -> modeGroup.check(R.id.presetModeSilent)
+                MODE_VIBRATE -> modeGroup.check(R.id.presetModeVibrate)
+                MODE_DND -> modeGroup.check(R.id.presetModeDnd)
+            }
             deleteBtn.visibility = View.VISIBLE
         } else {
             totalSeconds = 1800
-            selectedMode = AudioManager.RINGER_MODE_SILENT
+            selectedMode = MODE_SILENT
             modeGroup.check(R.id.presetModeSilent)
             deleteBtn.visibility = View.GONE
         }
@@ -76,7 +77,7 @@ class PresetEditDialog : DialogFragment() {
         }
 
         secInc.setOnClickListener {
-            totalSeconds = (totalSeconds + 10).coerceAtMost(3599)
+            totalSeconds = (totalSeconds + 10).coerceAtMost(35999)
             updateTimeButton(timeBtn)
             updateSecDisplay(secDisplay)
         }
@@ -88,10 +89,12 @@ class PresetEditDialog : DialogFragment() {
         }
 
         modeGroup.setOnCheckedChangeListener { _, id ->
-            selectedMode = if (id == R.id.presetModeSilent)
-                AudioManager.RINGER_MODE_SILENT
-            else
-                AudioManager.RINGER_MODE_VIBRATE
+            selectedMode = when (id) {
+                R.id.presetModeSilent -> MODE_SILENT
+                R.id.presetModeVibrate -> MODE_VIBRATE
+                R.id.presetModeDnd -> MODE_DND
+                else -> MODE_SILENT
+            }
         }
 
         saveBtn.setOnClickListener {
