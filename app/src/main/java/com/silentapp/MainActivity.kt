@@ -153,10 +153,10 @@ class MainActivity : AppCompatActivity() {
         lp.setMargins(0, 0, 4.dp(), 8.dp())
 
         card.findViewById<TextView>(R.id.presetLabel).text = preset.label
-        card.findViewById<TextView>(R.id.presetSubtext).text = "${preset.subText()} · ${preset.modeLabel()}"
+        card.findViewById<TextView>(R.id.presetSub).text = "${preset.subText()} · ${preset.modeLabel()}"
 
-        val deleteOverlay = card.findViewById<View>(R.id.deleteOverlay)
-        deleteOverlay.visibility = if (editMode) View.VISIBLE else View.GONE
+        val deleteBtn = card.findViewById<View>(R.id.presetDeleteBtn)
+        deleteBtn.visibility = if (editMode) View.VISIBLE else View.GONE
 
         card.setOnClickListener {
             if (editMode) {
@@ -165,7 +165,7 @@ class MainActivity : AppCompatActivity() {
                 startTimer(preset.totalSeconds, preset.mode, preset.label)
             }
         }
-        deleteOverlay.setOnClickListener { showPresetDialog(preset) }
+        deleteBtn.setOnClickListener { showPresetDialog(preset) }
         return card
     }
 
@@ -175,12 +175,7 @@ class MainActivity : AppCompatActivity() {
         val lp = addCard.layoutParams as ViewGroup.MarginLayoutParams
         lp.setMargins(0, 0, 0, 8.dp())
 
-        addCard.findViewById<TextView>(R.id.addLabel).text = getString(com.google.android.material.R.string.mtrl_picker_add)
         addCard.setOnClickListener {
-            val remainingRow = (presets.size + 1) % 3
-            if (remainingRow != 0) {
-                addCard.visibility = View.GONE
-            }
             showPresetDialog(null)
         }
         return addCard
