@@ -12,7 +12,7 @@
 
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/statusCard"
-            style="@style/Widget.Material3.Card.Filled"
+            style="@style/Widget.Material3.CardView.Filled"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             app:cardElevation="0dp"
@@ -147,7 +147,7 @@
 
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/preset1"
-            style="@style/Widget.Material3.Card.Outlined"
+            style="@style/Widget.Material3.CardView.Outlined"
             android:layout_width="0dp"
             android:layout_height="88dp"
             android:layout_marginTop="12dp"
@@ -189,7 +189,7 @@
 
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/preset2"
-            style="@style/Widget.Material3.Card.Outlined"
+            style="@style/Widget.Material3.CardView.Outlined"
             android:layout_width="0dp"
             android:layout_height="88dp"
             android:layout_marginTop="12dp"
@@ -231,7 +231,7 @@
 
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/preset3"
-            style="@style/Widget.Material3.Card.Outlined"
+            style="@style/Widget.Material3.CardView.Outlined"
             android:layout_width="0dp"
             android:layout_height="88dp"
             android:layout_marginTop="12dp"
@@ -273,7 +273,7 @@
 
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/preset4"
-            style="@style/Widget.Material3.Card.Outlined"
+            style="@style/Widget.Material3.CardView.Outlined"
             android:layout_width="0dp"
             android:layout_height="88dp"
             android:layout_marginTop="12dp"
@@ -326,7 +326,7 @@
 
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/customCard"
-            style="@style/Widget.Material3.Card.Filled"
+            style="@style/Widget.Material3.CardView.Filled"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
