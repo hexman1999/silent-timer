@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
@@ -36,7 +37,7 @@
                 android:insetTop="0dp"
                 android:insetBottom="0dp"
                 android:icon="@drawable/ic_arrow_up"
-                android:iconSize="16dp" />
+                app:iconSize="16dp" />
 
             <TextView
                 android:id="@+id/txtHours"
@@ -57,7 +58,7 @@
                 android:insetTop="0dp"
                 android:insetBottom="0dp"
                 android:icon="@drawable/ic_arrow_down"
-                android:iconSize="16dp" />
+                app:iconSize="16dp" />
         </LinearLayout>
 
         <TextView
@@ -83,7 +84,7 @@
                 android:insetTop="0dp"
                 android:insetBottom="0dp"
                 android:icon="@drawable/ic_arrow_up"
-                android:iconSize="16dp" />
+                app:iconSize="16dp" />
 
             <TextView
                 android:id="@+id/txtMinutes"
@@ -104,7 +105,7 @@
                 android:insetTop="0dp"
                 android:insetBottom="0dp"
                 android:icon="@drawable/ic_arrow_down"
-                android:iconSize="16dp" />
+                app:iconSize="16dp" />
         </LinearLayout>
 
         <TextView
@@ -130,7 +131,7 @@
                 android:insetTop="0dp"
                 android:insetBottom="0dp"
                 android:icon="@drawable/ic_arrow_up"
-                android:iconSize="16dp" />
+                app:iconSize="16dp" />
 
             <TextView
                 android:id="@+id/txtSeconds"
@@ -151,7 +152,7 @@
                 android:insetTop="0dp"
                 android:insetBottom="0dp"
                 android:icon="@drawable/ic_arrow_down"
-                android:iconSize="16dp" />
+                app:iconSize="16dp" />
         </LinearLayout>
     </LinearLayout>
 

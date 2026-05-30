@@ -30,7 +30,7 @@
                 android:insetTop="0dp"
                 android:insetBottom="0dp"
                 android:icon="@drawable/ic_arrow_up"
-                android:iconSize="12dp" />
+                app:iconSize="12dp" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnMoveDown"
@@ -40,7 +40,7 @@
                 android:insetTop="0dp"
                 android:insetBottom="0dp"
                 android:icon="@drawable/ic_arrow_down"
-                android:iconSize="12dp" />
+                app:iconSize="12dp" />
         </LinearLayout>
 
         <LinearLayout
