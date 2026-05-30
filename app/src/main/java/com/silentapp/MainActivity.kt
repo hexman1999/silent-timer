@@ -29,10 +29,15 @@ class MainActivity : AppCompatActivity() {
     private val presets = mutableListOf<Preset>()
 
     private val handler = Handler(Looper.getMainLooper())
+    private var lastTimerRunning = false
     private val tickRunnable = object : Runnable {
         override fun run() {
             updateActiveTimerCard()
             updateStatusCard()
+            if (lastTimerRunning != SilentTimerService.isTimerRunning) {
+                lastTimerRunning = SilentTimerService.isTimerRunning
+                highlightAllPresets()
+            }
             handler.postDelayed(this, 1000)
         }
     }
@@ -74,9 +79,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun handleShortcutIntent(intent: Intent) {
-        val seconds = intent.getIntExtra(EXTRA_SHORTCUT_SECONDS, 0)
-        val mode = intent.getIntExtra(EXTRA_SHORTCUT_MODE, -1)
-        val label = intent.getStringExtra(EXTRA_SHORTCUT_LABEL)
+        val seconds = intent.getIntExtra(ShortcutActivity.EXTRA_SECONDS, 0)
+        val mode = intent.getIntExtra(ShortcutActivity.EXTRA_MODE, -1)
+        val label = intent.getStringExtra(ShortcutActivity.EXTRA_LABEL)
         if (seconds > 0 && mode >= 0 && label != null) {
             startTimer(seconds, mode, label)
         }
@@ -161,6 +166,7 @@ class MainActivity : AppCompatActivity() {
         val lp = card.layoutParams as ViewGroup.MarginLayoutParams
         lp.setMargins(0, 0, if (isGrid) 4.dp() else 0, 8.dp())
 
+        card.tag = preset.id
         card.findViewById<TextView>(R.id.presetLabel).text = preset.label
         card.findViewById<TextView>(R.id.presetSub).text = "${preset.subText()} · ${preset.modeLabel()}"
 
@@ -169,6 +175,8 @@ class MainActivity : AppCompatActivity() {
 
         val reorder = card.findViewById<View>(R.id.reorderButtons)
         reorder.visibility = if (editMode) View.VISIBLE else View.GONE
+
+        updatePresetHighlight(card, preset.id)
 
         card.setOnClickListener {
             if (editMode) {
@@ -252,6 +260,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun startTimer(seconds: Int, mode: Int, label: String) {
+        if (SilentTimerService.isTimerRunning) {
+            startService(Intent(this, SilentTimerService::class.java).apply {
+                action = SilentTimerService.ACTION_CANCEL
+            })
+            Toast.makeText(this, getString(R.string.cancelled), Toast.LENGTH_SHORT).show()
+            return
+        }
+
         val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         if (mode == MODE_DND && !nm.isNotificationPolicyAccessGranted) {
             RingerModeManager.requestPolicyPermission(this)
@@ -274,12 +290,13 @@ class MainActivity : AppCompatActivity() {
         val manager = getSystemService(ShortcutManager::class.java) ?: return
 
         val shortcuts = presets.take(5).mapIndexed { i, preset ->
-            val shortcutIntent = Intent(this, MainActivity::class.java).apply {
+            val shortcutIntent = Intent(this, ShortcutActivity::class.java).apply {
                 action = Intent.ACTION_VIEW
-                putExtra(EXTRA_SHORTCUT_SECONDS, preset.totalSeconds)
-                putExtra(EXTRA_SHORTCUT_MODE, preset.mode)
-                putExtra(EXTRA_SHORTCUT_LABEL, preset.label)
-                flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
+                putExtra(ShortcutActivity.EXTRA_SECONDS, preset.totalSeconds)
+                putExtra(ShortcutActivity.EXTRA_MODE, preset.mode)
+                putExtra(ShortcutActivity.EXTRA_LABEL, preset.label)
+                putExtra(ShortcutActivity.EXTRA_PRESET_ID, preset.id)
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
             }
 
             ShortcutInfo.Builder(this, "preset_$i")
@@ -322,6 +339,29 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun updatePresetHighlight(card: MaterialCardView, presetId: String) {
+        val isActive = SilentTimerService.isTimerRunning && presetId == SilentTimerService.activePresetId
+        card.setCardBackgroundColor(
+            if (isActive) android.content.res.ColorStateList.valueOf(
+                androidx.core.content.ContextCompat.getColor(this, R.color.active_tint)
+            ) else android.content.res.ColorStateList.valueOf(
+                android.graphics.Color.TRANSPARENT
+            )
+        )
+    }
+
+    private fun highlightAllPresets() {
+        val container = findViewById<LinearLayout>(R.id.presetsContainer)
+        for (i in 0 until container.childCount) {
+            val row = container.getChildAt(i) as? ViewGroup ?: continue
+            for (j in 0 until row.childCount) {
+                val card = row.getChildAt(j) as? MaterialCardView ?: continue
+                val pid = card.tag as? String ?: continue
+                updatePresetHighlight(card, pid)
+            }
+        }
+    }
+
     private fun updateActiveTimerCard() {
         val card = findViewById<View>(R.id.activeTimerCard)
         val timeText = findViewById<TextView>(R.id.activeTimerTime)
@@ -350,8 +390,4 @@ class MainActivity : AppCompatActivity() {
         (this * resources.displayMetrics.density).toInt()
 
     companion object {
-        const val EXTRA_SHORTCUT_SECONDS = "shortcut_seconds"
-        const val EXTRA_SHORTCUT_MODE = "shortcut_mode"
-        const val EXTRA_SHORTCUT_LABEL = "shortcut_label"
-    }
 }

@@ -71,9 +71,10 @@ class SilentTimerService : Service() {
             ACTION_START -> {
                 val seconds = intent.getIntExtra(EXTRA_SECONDS, 0)
                 val mode = intent.getIntExtra(EXTRA_MODE, MODE_SILENT)
+                val presetId = intent.getStringExtra(EXTRA_PRESET_ID)
                 expectedRingerMode = RingerModeManager.actualRingerMode(mode)
                 RingerModeManager.applyMode(this, mode)
-                startTimer(seconds, mode)
+                startTimer(seconds, mode, presetId)
             }
             ACTION_EXTEND -> {
                 extendTimer()
@@ -87,7 +88,7 @@ class SilentTimerService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
-    private fun startTimer(seconds: Int, mode: Int) {
+    private fun startTimer(seconds: Int, mode: Int, presetId: String? = null) {
         handler.removeCallbacks(tickRunnable)
         running = true
         isTimerRunning = true
@@ -95,6 +96,7 @@ class SilentTimerService : Service() {
         totalDuration = seconds * 1000L
         currentMode = mode
         activeMode = mode
+        activePresetId = presetId
         this@SilentTimerService.endTime = endTime
         updateNotification()
         handler.postDelayed(tickRunnable, 1000)
@@ -111,6 +113,7 @@ class SilentTimerService : Service() {
     private fun stopTimer() {
         running = false
         isTimerRunning = false
+        activePresetId = null
         handler.removeCallbacks(tickRunnable)
         RingerModeManager.applyMode(this, MODE_NORMAL)
         stopForeground(STOP_FOREGROUND_REMOVE)
@@ -120,6 +123,7 @@ class SilentTimerService : Service() {
     private fun onTimerFinished() {
         running = false
         isTimerRunning = false
+        activePresetId = null
         RingerModeManager.applyMode(this, MODE_NORMAL)
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
@@ -222,12 +226,15 @@ class SilentTimerService : Service() {
 
         const val EXTRA_SECONDS = "seconds"
         const val EXTRA_MODE = "mode"
+        const val EXTRA_PRESET_ID = "preset_id"
 
         var isTimerRunning = false
             private set
         var endTime = 0L
             private set
         var activeMode = MODE_SILENT
+            private set
+        var activePresetId: String? = null
             private set
     }
 }

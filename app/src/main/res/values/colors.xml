@@ -13,4 +13,5 @@
     <color name="surface_variant">#DBE5DD</color>
     <color name="outline">#6B7972</color>
     <color name="error">#BA1A1A</color>
+    <color name="active_tint">#2244FF44</color>
 </resources>

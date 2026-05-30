@@ -33,6 +33,17 @@
             android:exported="false"
             android:theme="@style/Theme.SilentApp" />
 
+        <activity
+            android:name=".ShortcutActivity"
+            android:exported="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
+            android:excludeFromRecents="true"
+            android:noHistory="true">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+            </intent-filter>
+        </activity>
+
         <service
             android:name=".SilentTileService"
             android:exported="true"

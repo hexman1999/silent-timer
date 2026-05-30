@@ -1,9 +1,15 @@
 package com.silentapp
 
 import android.content.Context
+import android.content.Intent
 import android.content.SharedPreferences
+import android.os.Handler
+import android.os.Looper
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
+import android.text.format.DateFormat
+import android.widget.Toast
+import java.util.Calendar
 
 class SilentTileService : TileService() {
 
@@ -26,12 +32,31 @@ class SilentTileService : TileService() {
         RingerModeManager.applyMode(this, item.mode)
 
         if (item.seconds > 0) {
-            val intent = android.content.Intent(this, SilentTimerService::class.java).apply {
+            val intent = Intent(this, SilentTimerService::class.java).apply {
                 action = SilentTimerService.ACTION_START
                 putExtra(SilentTimerService.EXTRA_SECONDS, item.seconds)
                 putExtra(SilentTimerService.EXTRA_MODE, item.mode)
             }
             startForegroundServiceSafe(this, intent)
+
+            val endTime = System.currentTimeMillis() + item.seconds * 1000L
+            val cal = Calendar.getInstance().apply { timeInMillis = endTime }
+            val is24 = DateFormat.is24HourFormat(this)
+            val endTimeStr = if (is24) {
+                String.format("%02d:%02d", cal.get(Calendar.HOUR_OF_DAY), cal.get(Calendar.MINUTE))
+            } else {
+                val amPm = if (cal.get(Calendar.HOUR_OF_DAY) < 12) "AM" else "PM"
+                val h12 = when (cal.get(Calendar.HOUR_OF_DAY)) {
+                    0 -> 12; 12 -> 12; else -> cal.get(Calendar.HOUR_OF_DAY) % 12
+                }
+                String.format("%d:%02d %s", h12, cal.get(Calendar.MINUTE), amPm)
+            }
+            val timeStr = formatDuration(item.seconds)
+            val toastText = "${item.label} for $timeStr (until $endTimeStr)"
+
+            Handler(Looper.getMainLooper()).post {
+                Toast.makeText(this, toastText, Toast.LENGTH_LONG).show()
+            }
         }
 
         prefs.edit().putInt(KEY_POS, nextPos).apply()

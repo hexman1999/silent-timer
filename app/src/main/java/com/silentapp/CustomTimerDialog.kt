@@ -152,26 +152,34 @@ class CustomTimerDialog : DialogFragment() {
             picker.show(parentFragmentManager, "untilPicker")
         }
 
-        val startTimer: (Int) -> Unit = { mode ->
+        fun startTimer(mode: Int) {
             val totalSeconds = if (isUntilMode) {
                 computeUntilSeconds(untilHour, untilMinute)
             } else {
                 hours * 3600 + minutes * 60 + seconds
             }
-            if (totalSeconds > 0) {
-                val nm = requireContext().getSystemService(android.app.NotificationManager::class.java)
-                if (mode == MODE_DND && !nm.isNotificationPolicyAccessGranted) {
-                    RingerModeManager.requestPolicyPermission(requireContext())
-                } else {
-                    val intent = Intent(requireContext(), SilentTimerService::class.java).apply {
-                        action = SilentTimerService.ACTION_START
-                        putExtra(SilentTimerService.EXTRA_SECONDS, totalSeconds)
-                        putExtra(SilentTimerService.EXTRA_MODE, mode)
+            if (totalSeconds <= 0) return
+            if (SilentTimerService.isTimerRunning) {
+                requireContext().startService(
+                    Intent(requireContext(), SilentTimerService::class.java).apply {
+                        action = SilentTimerService.ACTION_CANCEL
                     }
-                    ContextCompat.startForegroundService(requireContext(), intent)
-                    dismiss()
-                }
+                )
+                dismiss()
+                return
             }
+            val nm = requireContext().getSystemService(android.app.NotificationManager::class.java)
+            if (mode == MODE_DND && !nm.isNotificationPolicyAccessGranted) {
+                RingerModeManager.requestPolicyPermission(requireContext())
+                return
+            }
+            val intent = Intent(requireContext(), SilentTimerService::class.java).apply {
+                action = SilentTimerService.ACTION_START
+                putExtra(SilentTimerService.EXTRA_SECONDS, totalSeconds)
+                putExtra(SilentTimerService.EXTRA_MODE, mode)
+            }
+            ContextCompat.startForegroundService(requireContext(), intent)
+            dismiss()
         }
 
         view.findViewById<View>(R.id.btnSetSilent).setOnClickListener { startTimer(MODE_SILENT) }
