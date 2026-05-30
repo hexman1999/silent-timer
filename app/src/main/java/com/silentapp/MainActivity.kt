@@ -110,53 +110,73 @@ class MainActivity : AppCompatActivity() {
             val btn = it as MaterialButton
             btn.text = if (editMode) getString(R.string.done) else getString(R.string.edit)
         }
+        findViewById<View>(R.id.btnSettings).setOnClickListener {
+            startActivity(Intent(this, SettingsActivity::class.java))
+        }
     }
 
     private fun renderPresets() {
         val container = findViewById<LinearLayout>(R.id.presetsContainer)
         container.removeAllViews()
 
-        var row = createRow(container)
+        val isGrid = presetManager.getViewStyle() == "grid"
+        val columns = if (isGrid) presetManager.getGridColumns() else 1
+
+        var row: LinearLayout? = null
         var countInRow = 0
 
         for (preset in presets) {
-            if (countInRow >= 3) {
-                row = createRow(container)
+            if (countInRow >= columns) {
+                row = null
                 countInRow = 0
             }
-            row.addView(createPresetCard(preset))
+            if (row == null) {
+                row = LinearLayout(this).apply {
+                    layoutParams = LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT
+                    )
+                    orientation = LinearLayout.HORIZONTAL
+                    container.addView(this)
+                }
+            }
+            row.addView(createPresetCard(preset, isGrid))
             countInRow++
         }
 
-        if (countInRow >= 3) {
-            row = createRow(container)
-            countInRow = 0
+        if (row == null || countInRow >= columns) {
+            row = LinearLayout(this).apply {
+                layoutParams = LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                )
+                orientation = LinearLayout.HORIZONTAL
+                container.addView(this)
+            }
         }
-        row.addView(createAddCard())
+        row.addView(createAddCard(isGrid))
     }
 
-    private fun createRow(container: LinearLayout): LinearLayout {
-        return LinearLayout(this).apply {
-            layoutParams = LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-            )
-            orientation = LinearLayout.HORIZONTAL
-            container.addView(this)
-        }
-    }
-
-    private fun createPresetCard(preset: Preset): View {
+    private fun createPresetCard(preset: Preset, isGrid: Boolean): View {
         val card = LayoutInflater.from(this).inflate(R.layout.item_preset, null) as MaterialCardView
-        card.layoutParams = LinearLayout.LayoutParams(0, 88.dp(), 1f)
+        if (isGrid) {
+            card.layoutParams = LinearLayout.LayoutParams(0, 88.dp(), 1f)
+        } else {
+            card.layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 88.dp()
+            )
+        }
         val lp = card.layoutParams as ViewGroup.MarginLayoutParams
-        lp.setMargins(0, 0, 4.dp(), 8.dp())
+        lp.setMargins(0, 0, if (isGrid) 4.dp() else 0, 8.dp())
 
         card.findViewById<TextView>(R.id.presetLabel).text = preset.label
         card.findViewById<TextView>(R.id.presetSub).text = "${preset.subText()} · ${preset.modeLabel()}"
 
         val deleteBtn = card.findViewById<View>(R.id.presetDeleteBtn)
         deleteBtn.visibility = if (editMode) View.VISIBLE else View.GONE
+
+        val reorder = card.findViewById<View>(R.id.reorderButtons)
+        reorder.visibility = if (editMode) View.VISIBLE else View.GONE
 
         card.setOnClickListener {
             if (editMode) {
@@ -166,12 +186,27 @@ class MainActivity : AppCompatActivity() {
             }
         }
         deleteBtn.setOnClickListener { showPresetDialog(preset) }
+
+        val idx = presets.indexOfFirst { it.id == preset.id }
+        card.findViewById<View>(R.id.btnMoveUp).setOnClickListener {
+            if (idx > 0) movePreset(idx, idx - 1)
+        }
+        card.findViewById<View>(R.id.btnMoveDown).setOnClickListener {
+            if (idx < presets.size - 1) movePreset(idx, idx + 1)
+        }
+
         return card
     }
 
-    private fun createAddCard(): View {
+    private fun createAddCard(isGrid: Boolean): View {
         val addCard = LayoutInflater.from(this).inflate(R.layout.item_preset_add, null) as MaterialCardView
-        addCard.layoutParams = LinearLayout.LayoutParams(0, 88.dp(), 1f)
+        if (isGrid) {
+            addCard.layoutParams = LinearLayout.LayoutParams(0, 88.dp(), 1f)
+        } else {
+            addCard.layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 88.dp()
+            )
+        }
         val lp = addCard.layoutParams as ViewGroup.MarginLayoutParams
         lp.setMargins(0, 0, 0, 8.dp())
 
@@ -179,6 +214,14 @@ class MainActivity : AppCompatActivity() {
             showPresetDialog(null)
         }
         return addCard
+    }
+
+    private fun movePreset(from: Int, to: Int) {
+        val item = presets.removeAt(from)
+        presets.add(to, item)
+        presetManager.savePresets(presets)
+        renderPresets()
+        updateShortcuts()
     }
 
     private fun showPresetDialog(preset: Preset?) {

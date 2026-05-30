@@ -34,4 +34,9 @@
     <string name="notif_extend">+10 min</string>
     <string name="notif_stop">Stop</string>
     <string name="notif_until">until %s</string>
+
+    <string name="settings_view_style">View Style</string>
+    <string name="settings_grid">Grid</string>
+    <string name="settings_list">List</string>
+    <string name="settings_grid_columns">Grid Columns</string>
 </resources>

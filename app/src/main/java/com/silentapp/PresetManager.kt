@@ -91,9 +91,23 @@ class PresetManager(context: Context) {
         prefs.edit().putString(KEY_PRESETS, arr.toString()).apply()
     }
 
+    fun getViewStyle(): String = prefs.getString(KEY_VIEW_STYLE, "grid") ?: "grid"
+
+    fun setViewStyle(style: String) {
+        prefs.edit().putString(KEY_VIEW_STYLE, style).apply()
+    }
+
+    fun getGridColumns(): Int = prefs.getInt(KEY_GRID_COLUMNS, 3).coerceIn(2, 4)
+
+    fun setGridColumns(columns: Int) {
+        prefs.edit().putInt(KEY_GRID_COLUMNS, columns.coerceIn(2, 4)).apply()
+    }
+
     companion object {
         private const val PREFS_NAME = "silent_timer_prefs"
         private const val KEY_PRESETS = "presets"
+        private const val KEY_VIEW_STYLE = "view_style"
+        private const val KEY_GRID_COLUMNS = "grid_columns"
 
         fun defaultPresets() = listOf(
             Preset("Silent", 1800, MODE_SILENT),
