@@ -24,11 +24,11 @@ jobs:
         with:
           cache-read-only: false
 
-      - name: Build release APK
-        run: ./gradlew assembleRelease --build-cache
+      - name: Build debug APK
+        run: ./gradlew assembleDebug --build-cache
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: silent-timer-release
-          path: app/build/outputs/apk/release/app-release-*.apk
+          name: silent-timer-debug
+          path: app/build/outputs/apk/debug/app-debug.apk
