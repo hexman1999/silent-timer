@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Silent Timer</string>
+    <string name="select_time">Select Duration</string>
+    <string name="timer_label">Duration</string>
+    <string name="set_silent">Silent</string>
+    <string name="set_vibrate">Vibrate</string>
+    <string name="cancel">Cancel Timer</string>
+    <string name="cancelled">Scheduled restore cancelled</string>
+    <string name="select_time_first">Please select a duration first</string>
+    <string name="perm_toast">Please grant Do Not Disturb access to use this app</string>
+    <string name="status_normal">Normal</string>
+    <string name="status_silent">Silent</string>
+    <string name="status_vibrate">Vibrate</string>
+    <string name="status_format">Current mode: %s</string>
+
+    <!-- QS Tile labels -->
+    <string name="tile_silent">Silent</string>
+    <string name="tile_vibrate">Vibrate</string>
+    <string name="tile_normal">Sound</string>
+</resources>
