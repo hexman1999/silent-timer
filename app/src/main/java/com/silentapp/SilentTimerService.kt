@@ -25,6 +25,7 @@ class SilentTimerService : Service() {
         override fun run() {
             if (!running) return
             remainingMillis -= 1000
+            this@SilentTimerService.remainingMillis = remainingMillis
             if (remainingMillis <= 0) {
                 onTimerFinished()
                 return
@@ -63,8 +64,11 @@ class SilentTimerService : Service() {
     private fun startTimer(minutes: Int, mode: Int) {
         handler.removeCallbacks(tickRunnable)
         running = true
+        isTimerRunning = true
         remainingMillis = minutes * 60 * 1000L
+        this@SilentTimerService.remainingMillis = remainingMillis
         currentMode = mode
+        activeMode = mode
         updateNotification()
         handler.postDelayed(tickRunnable, 1000)
 
@@ -73,11 +77,13 @@ class SilentTimerService : Service() {
 
     private fun extendTimer() {
         remainingMillis += 10 * 60 * 1000L
+        this@SilentTimerService.remainingMillis = remainingMillis
         updateNotification()
     }
 
     private fun stopTimer() {
         running = false
+        isTimerRunning = false
         handler.removeCallbacks(tickRunnable)
         val audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
         audioManager.ringerMode = AudioManager.RINGER_MODE_NORMAL
@@ -87,6 +93,7 @@ class SilentTimerService : Service() {
 
     private fun onTimerFinished() {
         running = false
+        isTimerRunning = false
         val audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
         audioManager.ringerMode = AudioManager.RINGER_MODE_NORMAL
         stopForeground(STOP_FOREGROUND_REMOVE)
@@ -172,14 +179,11 @@ class SilentTimerService : Service() {
         const val EXTRA_MINUTES = "minutes"
         const val EXTRA_MODE = "mode"
 
-        fun isRunning(context: Context): Boolean {
-            val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            try {
-                nm.getActiveNotifications().forEach {
-                    if (it.id == NOTIFICATION_ID) return true
-                }
-            } catch (_: Exception) {}
-            return false
-        }
+        var isTimerRunning = false
+            private set
+        var remainingMillis = 0L
+            private set
+        var activeMode = AudioManager.RINGER_MODE_SILENT
+            private set
     }
 }
