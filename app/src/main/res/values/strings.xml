@@ -6,9 +6,11 @@
     <string name="status_vibrate">Vibrate</string>
     <string name="status_subtext">Tap a preset or set a custom timer</string>
     <string name="presets">Quick Presets</string>
+    <string name="edit">Edit</string>
+    <string name="done">Done</string>
     <string name="custom_timer">Custom Timer</string>
     <string name="active_timer">Timer Active</string>
-    <string name="select_time">Pick Duration</string>
+    <string name="select_time">Pick</string>
     <string name="set_silent">Silent</string>
     <string name="set_vibrate">Vibrate</string>
     <string name="cancel">Cancel Timer</string>
@@ -17,12 +19,10 @@
     <string name="perm_toast">Please grant Do Not Disturb access to use this app</string>
     <string name="timer_started">Timer started</string>
 
-    <!-- QS Tile labels -->
     <string name="tile_silent">Silent</string>
     <string name="tile_vibrate">Vibrate</string>
     <string name="tile_normal">Sound</string>
 
-    <!-- Notification -->
     <string name="notif_channel">Silent Timer</string>
     <string name="notif_channel_desc">Shows remaining silent/vibrate time</string>
     <string name="notif_silent">Silent mode active</string>

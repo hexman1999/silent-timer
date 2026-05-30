@@ -9,30 +9,28 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.fragment.app.DialogFragment
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.timepicker.MaterialTimePicker
 import com.google.android.material.timepicker.TimeFormat
 
 class MainActivity : AppCompatActivity() {
 
-    private data class Preset(
-        val label: String, val sub: String, val minutes: Int, val mode: Int
-    )
-
-    private val presets = listOf(
-        Preset("Silent", "30 min", 30, AudioManager.RINGER_MODE_SILENT),
-        Preset("Vibrate", "15 min", 15, AudioManager.RINGER_MODE_VIBRATE),
-        Preset("Silent", "1 hour", 60, AudioManager.RINGER_MODE_SILENT),
-        Preset("Vibrate", "5 min", 5, AudioManager.RINGER_MODE_VIBRATE),
-    )
-
     private var selectedMinutes = 0
     private var customMode = AudioManager.RINGER_MODE_SILENT
+    private var editMode = false
+
+    private lateinit var presetManager: PresetManager
+    private val presets = mutableListOf<Preset>()
 
     private val audioManager by lazy {
         getSystemService(AUDIO_SERVICE) as AudioManager
@@ -51,10 +49,14 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        presetManager = PresetManager(this)
+        presets.addAll(presetManager.loadPresets())
+
         checkPermissions()
-        setupPresets()
         setupCustomTimer()
         setupActiveTimerCard()
+        setupEditButton()
+        renderPresets()
     }
 
     override fun onResume() {
@@ -83,30 +85,121 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun setupPresets() {
-        val cards = listOf(
-            R.id.preset1, R.id.preset2, R.id.preset3, R.id.preset4
-        )
-        val labelIds = listOf(
-            R.id.preset1Label, R.id.preset2Label, R.id.preset3Label, R.id.preset4Label
-        )
-        val subIds = listOf(
-            R.id.preset1Sub, R.id.preset2Sub, R.id.preset3Sub, R.id.preset4Sub
-        )
-
-        presets.forEachIndexed { i, preset ->
-            findViewById<TextView>(labelIds[i]).text = preset.label
-            findViewById<TextView>(subIds[i]).text = preset.sub
-            findViewById<MaterialCardView>(cards[i]).setOnClickListener {
-                startTimer(preset.minutes, preset.mode, preset.label)
-            }
+    private fun setupEditButton() {
+        findViewById<MaterialButton>(R.id.btnEditPresets).setOnClickListener {
+            editMode = !editMode
+            renderPresets()
         }
     }
 
-    private fun setupCustomTimer() {
-        findViewById<View>(R.id.customTimerText).apply {
-            setOnClickListener { showTimePicker() }
+    private fun renderPresets() {
+        val container = findViewById<LinearLayout>(R.id.presetsContainer)
+        container.removeAllViews()
+        val inflater = LayoutInflater.from(this)
+
+        val btn = findViewById<MaterialButton>(R.id.btnEditPresets)
+        btn.text = if (editMode) getString(R.string.done) else getString(R.string.edit)
+
+        val rows = presets.chunked(2)
+        for (rowPresets in rows) {
+            val row = LinearLayout(this).apply {
+                layoutParams = ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                )
+                orientation = LinearLayout.HORIZONTAL
+            }
+
+            for (preset in rowPresets) {
+                val card = inflater.inflate(R.layout.item_preset, row, false) as MaterialCardView
+                card.layoutParams = LinearLayout.LayoutParams(0, 88.dp(), 1f).apply {
+                    val m = 4.dp()
+                    setMargins(m, 0, m, 0)
+                }
+
+                card.findViewById<TextView>(R.id.presetLabel).text = preset.label
+                card.findViewById<TextView>(R.id.presetSub).text = preset.subText()
+
+                if (editMode) {
+                    val deleteBtn = card.findViewById<View>(R.id.presetDeleteBtn)
+                    deleteBtn.visibility = View.VISIBLE
+                    deleteBtn.setOnClickListener {
+                        presets.remove(preset)
+                        presetManager.savePresets(presets)
+                        renderPresets()
+                    }
+                    card.setOnClickListener {
+                        showPresetDialog(preset)
+                    }
+                    card.foreground = null
+                } else {
+                    card.findViewById<View>(R.id.presetDeleteBtn).visibility = View.GONE
+                    card.setOnClickListener {
+                        startTimer(preset.minutes, preset.mode, preset.label)
+                    }
+                    card.isClickable = true
+                    card.isFocusable = true
+                }
+                row.addView(card)
+            }
+
+            if (rowPresets.size == 1) {
+                val spacer = android.widget.Space(this).apply {
+                    layoutParams = LinearLayout.LayoutParams(0, 0, 1f)
+                }
+                row.addView(spacer)
+            }
+
+            container.addView(row)
+
+            val params = row.layoutParams as ViewGroup.MarginLayoutParams
+            params.bottomMargin = 8.dp()
+            row.layoutParams = params
         }
+
+        if (editMode) {
+            val addRow = LinearLayout(this).apply {
+                layoutParams = ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                )
+                orientation = LinearLayout.HORIZONTAL
+            }
+
+            val addCard = inflater.inflate(R.layout.item_preset_add, container, false) as MaterialCardView
+            addCard.layoutParams = LinearLayout.LayoutParams(0, 88.dp(), 1f)
+            addCard.setOnClickListener { showPresetDialog(null) }
+
+            addRow.addView(addCard)
+            addRow.addView(android.widget.Space(this).apply {
+                layoutParams = LinearLayout.LayoutParams(0, 0, 1f)
+            })
+            container.addView(addRow)
+        }
+    }
+
+    private fun showPresetDialog(preset: Preset?) {
+        val dialog = PresetEditDialog.newInstance(preset)
+        dialog.setOnSave { newPreset ->
+            val idx = presets.indexOfFirst { it.id == newPreset.id }
+            if (idx >= 0) {
+                presets[idx] = newPreset
+            } else {
+                presets.add(newPreset)
+            }
+            presetManager.savePresets(presets)
+            renderPresets()
+        }
+        dialog.setOnDelete { delPreset ->
+            presets.removeAll { it.id == delPreset.id }
+            presetManager.savePresets(presets)
+            renderPresets()
+        }
+        dialog.show(supportFragmentManager, "presetEdit")
+    }
+
+    private fun setupCustomTimer() {
+        findViewById<View>(R.id.customTimerText).setOnClickListener { showTimePicker() }
         findViewById<View>(R.id.btnSelectTime).setOnClickListener { showTimePicker() }
         findViewById<View>(R.id.btnSetSilentCustom).setOnClickListener {
             customMode = AudioManager.RINGER_MODE_SILENT
@@ -140,9 +233,7 @@ class MainActivity : AppCompatActivity() {
             .build()
 
         picker.addOnPositiveButtonClickListener {
-            val h = picker.hour
-            val m = picker.minute
-            selectedMinutes = h * 60 + m
+            selectedMinutes = picker.hour * 60 + picker.minute
             updateCustomTimerDisplay()
         }
 
@@ -178,7 +269,6 @@ class MainActivity : AppCompatActivity() {
             putExtra(SilentTimerService.EXTRA_MODE, mode)
         }
         ContextCompat.startForegroundService(this, intent)
-
         Toast.makeText(this, "$label for $minutes min", Toast.LENGTH_SHORT).show()
     }
 
@@ -229,4 +319,7 @@ class MainActivity : AppCompatActivity() {
             card.visibility = View.GONE
         }
     }
+
+    private fun Int.dp(): Int =
+        (this * resources.displayMetrics.density).toInt()
 }
