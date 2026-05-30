@@ -178,7 +178,7 @@ class SilentTimerService : Service() {
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .setProgress(progressMax, progressCurrent, false)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .addAction(
                 android.R.drawable.ic_input_add,
                 getString(R.string.notif_extend),
@@ -197,9 +197,11 @@ class SilentTimerService : Service() {
             val channel = NotificationChannel(
                 CHANNEL_ID,
                 getString(R.string.notif_channel),
-                NotificationManager.IMPORTANCE_LOW
+                NotificationManager.IMPORTANCE_DEFAULT
             ).apply {
                 description = getString(R.string.notif_channel_desc)
+                enableVibration(false)
+                setSound(null, null)
             }
             val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
             nm.createNotificationChannel(channel)

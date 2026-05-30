@@ -36,7 +36,7 @@
                 android:layout_height="32dp"
                 android:insetTop="0dp"
                 android:insetBottom="0dp"
-                android:icon="@drawable/ic_arrow_up"
+                app:icon="@drawable/ic_arrow_up"
                 app:iconSize="16dp" />
 
             <TextView
@@ -57,7 +57,7 @@
                 android:layout_height="32dp"
                 android:insetTop="0dp"
                 android:insetBottom="0dp"
-                android:icon="@drawable/ic_arrow_down"
+                app:icon="@drawable/ic_arrow_down"
                 app:iconSize="16dp" />
         </LinearLayout>
 
@@ -83,7 +83,7 @@
                 android:layout_height="32dp"
                 android:insetTop="0dp"
                 android:insetBottom="0dp"
-                android:icon="@drawable/ic_arrow_up"
+                app:icon="@drawable/ic_arrow_up"
                 app:iconSize="16dp" />
 
             <TextView
@@ -104,7 +104,7 @@
                 android:layout_height="32dp"
                 android:insetTop="0dp"
                 android:insetBottom="0dp"
-                android:icon="@drawable/ic_arrow_down"
+                app:icon="@drawable/ic_arrow_down"
                 app:iconSize="16dp" />
         </LinearLayout>
 
@@ -130,7 +130,7 @@
                 android:layout_height="32dp"
                 android:insetTop="0dp"
                 android:insetBottom="0dp"
-                android:icon="@drawable/ic_arrow_up"
+                app:icon="@drawable/ic_arrow_up"
                 app:iconSize="16dp" />
 
             <TextView
@@ -151,7 +151,7 @@
                 android:layout_height="32dp"
                 android:insetTop="0dp"
                 android:insetBottom="0dp"
-                android:icon="@drawable/ic_arrow_down"
+                app:icon="@drawable/ic_arrow_down"
                 app:iconSize="16dp" />
         </LinearLayout>
     </LinearLayout>
