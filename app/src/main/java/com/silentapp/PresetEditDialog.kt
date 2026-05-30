@@ -6,6 +6,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.RadioGroup
+import android.widget.TextView
 import androidx.fragment.app.DialogFragment
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -19,7 +20,7 @@ class PresetEditDialog : DialogFragment() {
     private var onSave: ((Preset) -> Unit)? = null
     private var onDelete: ((Preset) -> Unit)? = null
 
-    private var selectedMinutes = 0
+    private var totalSeconds = 0
     private var selectedMode = AudioManager.RINGER_MODE_SILENT
 
     override fun onCreateView(
@@ -31,6 +32,9 @@ class PresetEditDialog : DialogFragment() {
 
         val nameInput = view.findViewById<TextInputEditText>(R.id.presetNameInput)
         val timeBtn = view.findViewById<MaterialButton>(R.id.presetTimeBtn)
+        val secDisplay = view.findViewById<TextView>(R.id.presetSecDisplay)
+        val secInc = view.findViewById<View>(R.id.presetSecInc)
+        val secDec = view.findViewById<View>(R.id.presetSecDec)
         val modeGroup = view.findViewById<RadioGroup>(R.id.presetModeGroup)
         val saveBtn = view.findViewById<MaterialButton>(R.id.presetSaveBtn)
         val deleteBtn = view.findViewById<MaterialButton>(R.id.presetDeleteBtn)
@@ -38,7 +42,7 @@ class PresetEditDialog : DialogFragment() {
         val p = preset
         if (p != null) {
             nameInput.setText(p.label)
-            selectedMinutes = p.minutes
+            totalSeconds = p.totalSeconds
             selectedMode = p.mode
             modeGroup.check(
                 if (p.mode == AudioManager.RINGER_MODE_SILENT) R.id.presetModeSilent
@@ -46,25 +50,41 @@ class PresetEditDialog : DialogFragment() {
             )
             deleteBtn.visibility = View.VISIBLE
         } else {
-            selectedMinutes = 30
+            totalSeconds = 1800
             selectedMode = AudioManager.RINGER_MODE_SILENT
             modeGroup.check(R.id.presetModeSilent)
             deleteBtn.visibility = View.GONE
         }
         updateTimeButton(timeBtn)
+        updateSecDisplay(secDisplay)
 
         timeBtn.setOnClickListener {
+            val h = totalSeconds / 3600
+            val m = (totalSeconds % 3600) / 60
             val picker = MaterialTimePicker.Builder()
                 .setTimeFormat(TimeFormat.CLOCK_24H)
-                .setHour(selectedMinutes / 60)
-                .setMinute(selectedMinutes % 60)
+                .setHour(h)
+                .setMinute(m)
                 .setTitleText("Select duration")
                 .build()
             picker.addOnPositiveButtonClickListener {
-                selectedMinutes = picker.hour * 60 + picker.minute
+                totalSeconds = (picker.hour % 24) * 3600 + (picker.minute % 60) * 60 + (totalSeconds % 60)
                 updateTimeButton(timeBtn)
+                updateSecDisplay(secDisplay)
             }
             picker.show(childFragmentManager, "editTimePicker")
+        }
+
+        secInc.setOnClickListener {
+            totalSeconds = (totalSeconds + 10).coerceAtMost(3599)
+            updateTimeButton(timeBtn)
+            updateSecDisplay(secDisplay)
+        }
+
+        secDec.setOnClickListener {
+            totalSeconds = (totalSeconds - 10).coerceAtLeast(0)
+            updateTimeButton(timeBtn)
+            updateSecDisplay(secDisplay)
         }
 
         modeGroup.setOnCheckedChangeListener { _, id ->
@@ -80,13 +100,13 @@ class PresetEditDialog : DialogFragment() {
                 nameInput.error = "Name is required"
                 return@setOnClickListener
             }
-            if (selectedMinutes <= 0) {
+            if (totalSeconds <= 0) {
                 return@setOnClickListener
             }
             val newPreset = Preset(
                 id = p?.id ?: java.util.UUID.randomUUID().toString(),
                 label = label,
-                minutes = selectedMinutes,
+                totalSeconds = totalSeconds,
                 mode = selectedMode
             )
             onSave?.invoke(newPreset)
@@ -111,9 +131,14 @@ class PresetEditDialog : DialogFragment() {
     }
 
     private fun updateTimeButton(btn: MaterialButton) {
-        val h = selectedMinutes / 60
-        val m = selectedMinutes % 60
+        val h = totalSeconds / 3600
+        val m = (totalSeconds % 3600) / 60
         btn.text = String.format("%02d:%02d", h, m)
+    }
+
+    private fun updateSecDisplay(tv: TextView) {
+        val s = totalSeconds % 60
+        tv.text = String.format("%02d", s)
     }
 
     fun setOnSave(listener: (Preset) -> Unit) {

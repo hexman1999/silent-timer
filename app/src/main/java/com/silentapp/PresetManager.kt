@@ -8,15 +8,21 @@ import org.json.JSONObject
 
 data class Preset(
     val label: String,
-    val minutes: Int,
+    val totalSeconds: Int,
     val mode: Int,
     val id: String = java.util.UUID.randomUUID().toString()
 ) : java.io.Serializable {
     fun modeLabel(): String = if (mode == AudioManager.RINGER_MODE_SILENT) "Silent" else "Vibrate"
 
-    fun subText(): String = when {
-        minutes >= 60 -> "${minutes / 60}h ${minutes % 60}m"
-        else -> "$minutes min"
+    fun subText(): String {
+        val h = totalSeconds / 3600
+        val m = (totalSeconds % 3600) / 60
+        val s = totalSeconds % 60
+        return buildString {
+            if (h > 0) append("${h}h ")
+            if (m > 0) append("${m}m ")
+            if (s > 0 || (h == 0 && m == 0)) append("${s}s")
+        }.trimEnd()
     }
 }
 
@@ -36,7 +42,7 @@ class PresetManager(context: Context) {
                     Preset(
                         id = obj.getString("id"),
                         label = obj.getString("label"),
-                        minutes = obj.getInt("minutes"),
+                        totalSeconds = obj.getInt("totalSeconds"),
                         mode = obj.getInt("mode")
                     )
                 )
@@ -54,7 +60,7 @@ class PresetManager(context: Context) {
                 JSONObject().apply {
                     put("id", p.id)
                     put("label", p.label)
-                    put("minutes", p.minutes)
+                    put("totalSeconds", p.totalSeconds)
                     put("mode", p.mode)
                 }
             )
@@ -67,10 +73,10 @@ class PresetManager(context: Context) {
         private const val KEY_PRESETS = "presets"
 
         fun defaultPresets() = listOf(
-            Preset("Silent", 30, AudioManager.RINGER_MODE_SILENT),
-            Preset("Vibrate", 15, AudioManager.RINGER_MODE_VIBRATE),
-            Preset("Silent", 60, AudioManager.RINGER_MODE_SILENT),
-            Preset("Vibrate", 5, AudioManager.RINGER_MODE_VIBRATE),
+            Preset("Silent", 1800, AudioManager.RINGER_MODE_SILENT),
+            Preset("Vibrate", 900, AudioManager.RINGER_MODE_VIBRATE),
+            Preset("Silent", 3600, AudioManager.RINGER_MODE_SILENT),
+            Preset("Vibrate", 300, AudioManager.RINGER_MODE_VIBRATE),
         )
     }
 }

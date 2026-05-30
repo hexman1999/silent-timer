@@ -43,11 +43,11 @@ class SilentTimerService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             ACTION_START -> {
-                val minutes = intent.getIntExtra(EXTRA_MINUTES, 0)
+                val seconds = intent.getIntExtra(EXTRA_SECONDS, 0)
                 val mode = intent.getIntExtra(EXTRA_MODE, AudioManager.RINGER_MODE_SILENT)
                 val audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
                 audioManager.ringerMode = mode
-                startTimer(minutes, mode)
+                startTimer(seconds, mode)
             }
             ACTION_EXTEND -> {
                 extendTimer()
@@ -61,11 +61,11 @@ class SilentTimerService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
-    private fun startTimer(minutes: Int, mode: Int) {
+    private fun startTimer(seconds: Int, mode: Int) {
         handler.removeCallbacks(tickRunnable)
         running = true
         isTimerRunning = true
-        remainingMillis = minutes * 60 * 1000L
+        remainingMillis = seconds * 1000L
         this@SilentTimerService.remainingMillis = remainingMillis
         currentMode = mode
         activeMode = mode
@@ -107,9 +107,11 @@ class SilentTimerService : Service() {
 
     private fun buildNotification(): Notification {
         val totalSecs = remainingMillis / 1000
-        val mins = totalSecs / 60
-        val secs = totalSecs % 60
-        val timeStr = String.format("%d:%02d", mins, secs)
+        val h = totalSecs / 3600
+        val m = (totalSecs % 3600) / 60
+        val s = totalSecs % 60
+        val timeStr = if (h > 0) String.format("%d:%02d:%02d", h, m, s)
+        else String.format("%d:%02d", m, s)
 
         val modeLabel = when (currentMode) {
             AudioManager.RINGER_MODE_SILENT -> getString(R.string.notif_silent)
@@ -176,7 +178,7 @@ class SilentTimerService : Service() {
         const val ACTION_EXTEND = "com.silentapp.EXTEND_TIMER"
         const val ACTION_CANCEL = "com.silentapp.CANCEL_TIMER"
 
-        const val EXTRA_MINUTES = "minutes"
+        const val EXTRA_SECONDS = "seconds"
         const val EXTRA_MODE = "mode"
 
         var isTimerRunning = false

@@ -1,7 +1,6 @@
 package com.silentapp
 
 import android.Manifest
-import android.app.NotificationManager
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.AudioManager
@@ -17,7 +16,6 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
-import androidx.fragment.app.DialogFragment
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.timepicker.MaterialTimePicker
@@ -25,7 +23,7 @@ import com.google.android.material.timepicker.TimeFormat
 
 class MainActivity : AppCompatActivity() {
 
-    private var selectedMinutes = 0
+    private var selectedSeconds = 0
     private var customMode = AudioManager.RINGER_MODE_SILENT
     private var editMode = false
 
@@ -71,11 +69,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun checkPermissions() {
-        val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-        if (!nm.isNotificationPolicyAccessGranted) {
-            Toast.makeText(this, R.string.perm_toast, Toast.LENGTH_LONG).show()
-            RingerModeManager.requestPolicyPermission(this)
-        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
                 != PackageManager.PERMISSION_GRANTED
@@ -135,7 +128,7 @@ class MainActivity : AppCompatActivity() {
                 } else {
                     card.findViewById<View>(R.id.presetDeleteBtn).visibility = View.GONE
                     card.setOnClickListener {
-                        startTimer(preset.minutes, preset.mode, preset.label)
+                        startTimer(preset.totalSeconds, preset.mode, preset.label)
                     }
                     card.isClickable = true
                     card.isFocusable = true
@@ -201,6 +194,16 @@ class MainActivity : AppCompatActivity() {
     private fun setupCustomTimer() {
         findViewById<View>(R.id.customTimerText).setOnClickListener { showTimePicker() }
         findViewById<View>(R.id.btnSelectTime).setOnClickListener { showTimePicker() }
+
+        findViewById<View>(R.id.btnSecInc).setOnClickListener {
+            selectedSeconds = (selectedSeconds + 10).coerceAtMost(3599)
+            updateCustomTimerDisplay()
+        }
+        findViewById<View>(R.id.btnSecDec).setOnClickListener {
+            selectedSeconds = (selectedSeconds - 10).coerceAtLeast(0)
+            updateCustomTimerDisplay()
+        }
+
         findViewById<View>(R.id.btnSetSilentCustom).setOnClickListener {
             customMode = AudioManager.RINGER_MODE_SILENT
             applyCustomTimer()
@@ -225,15 +228,18 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showTimePicker() {
+        val h = selectedSeconds / 3600
+        val m = (selectedSeconds % 3600) / 60
         val picker = MaterialTimePicker.Builder()
             .setTimeFormat(TimeFormat.CLOCK_24H)
-            .setHour(0)
-            .setMinute(0)
+            .setHour(h)
+            .setMinute(m)
             .setTitleText(R.string.select_time)
             .build()
 
         picker.addOnPositiveButtonClickListener {
-            selectedMinutes = picker.hour * 60 + picker.minute
+            val newSeconds = (picker.hour % 24) * 3600 + (picker.minute % 60) * 60 + (selectedSeconds % 60)
+            selectedSeconds = newSeconds.coerceAtMost(3599)
             updateCustomTimerDisplay()
         }
 
@@ -241,35 +247,37 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateCustomTimerDisplay() {
-        val h = selectedMinutes / 60
-        val m = selectedMinutes % 60
+        val h = selectedSeconds / 3600
+        val m = (selectedSeconds % 3600) / 60
+        val s = selectedSeconds % 60
         findViewById<TextView>(R.id.customTimerText).text =
-            String.format("%02d:%02d", h, m)
+            String.format("%02d:%02d", h * 60 + m, s)
+        findViewById<TextView>(R.id.secondsDisplay).text =
+            String.format("%02d", s)
     }
 
     private fun applyCustomTimer() {
-        if (selectedMinutes <= 0) {
+        if (selectedSeconds <= 0) {
             Toast.makeText(this, R.string.select_time_first, Toast.LENGTH_SHORT).show()
             return
         }
         val label = if (customMode == AudioManager.RINGER_MODE_SILENT) "Silent" else "Vibrate"
-        startTimer(selectedMinutes, customMode, label)
+        startTimer(selectedSeconds, customMode, label)
     }
 
-    private fun startTimer(minutes: Int, mode: Int, label: String) {
-        val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-        if (!nm.isNotificationPolicyAccessGranted) {
-            RingerModeManager.requestPolicyPermission(this)
-            return
-        }
-
+    private fun startTimer(seconds: Int, mode: Int, label: String) {
         val intent = Intent(this, SilentTimerService::class.java).apply {
             action = SilentTimerService.ACTION_START
-            putExtra(SilentTimerService.EXTRA_MINUTES, minutes)
+            putExtra(SilentTimerService.EXTRA_SECONDS, seconds)
             putExtra(SilentTimerService.EXTRA_MODE, mode)
         }
         ContextCompat.startForegroundService(this, intent)
-        Toast.makeText(this, "$label for $minutes min", Toast.LENGTH_SHORT).show()
+        val display = when {
+            seconds >= 3600 -> "${seconds / 3600}h ${(seconds % 3600) / 60}m ${seconds % 60}s"
+            seconds >= 60 -> "${seconds / 60}m ${seconds % 60}s"
+            else -> "${seconds}s"
+        }
+        Toast.makeText(this, "$label for $display", Toast.LENGTH_SHORT).show()
     }
 
     private fun updateDashboard() {
@@ -305,9 +313,13 @@ class MainActivity : AppCompatActivity() {
         if (SilentTimerService.isTimerRunning) {
             card.visibility = View.VISIBLE
             val totalSecs = SilentTimerService.remainingMillis / 1000
-            val mins = totalSecs / 60
-            val secs = totalSecs % 60
-            timeText.text = String.format("%d:%02d", mins, secs)
+            val h = totalSecs / 3600
+            val m = (totalSecs % 3600) / 60
+            val s = totalSecs % 60
+            timeText.text = if (h > 0)
+                String.format("%d:%02d:%02d", h, m, s)
+            else
+                String.format("%d:%02d", m, s)
 
             val modeLabel = when (SilentTimerService.activeMode) {
                 AudioManager.RINGER_MODE_SILENT -> getString(R.string.status_silent)
