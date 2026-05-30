@@ -171,9 +171,11 @@ class SilentTimerService : Service() {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
+        val notifText = getString(R.string.notif_remaining, timeStr, endTimeStr)
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(modeLabel)
-            .setContentText(getString(R.string.notif_remaining, timeStr, endTimeStr))
+            .setContentText(notifText)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(notifText))
             .setSmallIcon(android.R.drawable.ic_lock_silent_mode)
             .setOngoing(true)
             .setOnlyAlertOnce(true)

@@ -64,6 +64,45 @@ class CustomTimerDialog : DialogFragment() {
         view.findViewById<View>(R.id.btnSecDown).setOnClickListener {
             seconds = (seconds - 10).coerceAtLeast(0); updateDisplay()
         }
+
+        fun TextView.enableDrag(
+            step: Int,
+            max: Int,
+            getter: () -> Int,
+            setter: (Int) -> Unit
+        ) {
+            var lastY = 0f
+            var accumulated = 0f
+            setOnTouchListener { v, event ->
+                when (event.action) {
+                    android.view.MotionEvent.ACTION_DOWN -> {
+                        lastY = event.y
+                        accumulated = 0f
+                        v.parent.requestDisallowInterceptTouchEvent(true)
+                        false
+                    }
+                    android.view.MotionEvent.ACTION_MOVE -> {
+                        val delta = lastY - event.y
+                        accumulated += delta
+                        val threshold = 20 * resources.displayMetrics.density
+                        if (kotlin.math.abs(accumulated) >= threshold) {
+                            val dir = if (accumulated > 0) 1 else -1
+                            val newVal = (getter() + dir * step).coerceIn(0, max)
+                            setter(newVal)
+                            updateDisplay()
+                            accumulated = 0f
+                        }
+                        lastY = event.y
+                        true
+                    }
+                    else -> false
+                }
+            }
+        }
+
+        txtHours.enableDrag(step = 1, max = 99, getter = { hours }, setter = { hours = it })
+        txtMinutes.enableDrag(step = 1, max = 59, getter = { minutes }, setter = { minutes = it })
+        txtSeconds.enableDrag(step = 10, max = 59, getter = { seconds }, setter = { seconds = it })
     }
 
     private fun setupActions(view: View) {
