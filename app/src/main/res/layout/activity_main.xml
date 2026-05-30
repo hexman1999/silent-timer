@@ -36,7 +36,8 @@
                     android:layout_width="40dp"
                     android:layout_height="40dp"
                     android:importantForAccessibility="no"
-                    android:text="\u2699" />
+                    android:icon="@drawable/ic_settings"
+                    android:iconSize="20dp" />
             </LinearLayout>
 
             <com.google.android.material.card.MaterialCardView
@@ -155,6 +156,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="56dp"
                 android:layout_marginTop="16dp"
+                android:icon="@drawable/ic_timer"
+                android:iconSize="20dp"
                 android:text="@string/custom_timer" />
 
             <LinearLayout

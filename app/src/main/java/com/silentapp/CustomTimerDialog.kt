@@ -119,19 +119,20 @@ class CustomTimerDialog : DialogFragment() {
             } else {
                 hours * 3600 + minutes * 60 + seconds
             }
-            if (totalSeconds <= 0) return@Unit
-            val nm = requireContext().getSystemService(android.app.NotificationManager::class.java)
-            if (mode == MODE_DND && !nm.isNotificationPolicyAccessGranted) {
-                RingerModeManager.requestPolicyPermission(requireContext())
-                return@Unit
+            if (totalSeconds > 0) {
+                val nm = requireContext().getSystemService(android.app.NotificationManager::class.java)
+                if (mode == MODE_DND && !nm.isNotificationPolicyAccessGranted) {
+                    RingerModeManager.requestPolicyPermission(requireContext())
+                } else {
+                    val intent = Intent(requireContext(), SilentTimerService::class.java).apply {
+                        action = SilentTimerService.ACTION_START
+                        putExtra(SilentTimerService.EXTRA_SECONDS, totalSeconds)
+                        putExtra(SilentTimerService.EXTRA_MODE, mode)
+                    }
+                    ContextCompat.startForegroundService(requireContext(), intent)
+                    dismiss()
+                }
             }
-            val intent = Intent(requireContext(), SilentTimerService::class.java).apply {
-                action = SilentTimerService.ACTION_START
-                putExtra(SilentTimerService.EXTRA_SECONDS, totalSeconds)
-                putExtra(SilentTimerService.EXTRA_MODE, mode)
-            }
-            ContextCompat.startForegroundService(requireContext(), intent)
-            dismiss()
         }
 
         view.findViewById<View>(R.id.btnSetSilent).setOnClickListener { startTimer(MODE_SILENT) }

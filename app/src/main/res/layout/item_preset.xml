@@ -29,8 +29,8 @@
                 android:layout_height="28dp"
                 android:insetTop="0dp"
                 android:insetBottom="0dp"
-                android:text="▲"
-                android:textSize="12sp" />
+                android:icon="@drawable/ic_arrow_up"
+                android:iconSize="12dp" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnMoveDown"
@@ -39,8 +39,8 @@
                 android:layout_height="28dp"
                 android:insetTop="0dp"
                 android:insetBottom="0dp"
-                android:text="▼"
-                android:textSize="12sp" />
+                android:icon="@drawable/ic_arrow_down"
+                android:iconSize="12dp" />
         </LinearLayout>
 
         <LinearLayout
