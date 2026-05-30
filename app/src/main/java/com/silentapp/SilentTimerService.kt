@@ -14,6 +14,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.text.format.DateFormat
 import java.util.Calendar
 import androidx.core.app.NotificationCompat
 
@@ -145,7 +146,14 @@ class SilentTimerService : Service() {
         val cal = Calendar.getInstance().apply { timeInMillis = endTime }
         val endHour = cal.get(Calendar.HOUR_OF_DAY)
         val endMin = cal.get(Calendar.MINUTE)
-        val endTimeStr = String.format("%02d:%02d", endHour, endMin)
+        val is24 = DateFormat.is24HourFormat(this)
+        val endTimeStr = if (is24) {
+            String.format("%02d:%02d", endHour, endMin)
+        } else {
+            val amPm = if (endHour < 12) "AM" else "PM"
+            val h12 = when (endHour) { 0 -> 12; 12 -> 12; else -> endHour % 12 }
+            String.format("%d:%02d %s", h12, endMin, amPm)
+        }
 
         val extendIntent = Intent(this, SilentTimerService::class.java).apply {
             action = ACTION_EXTEND
@@ -165,8 +173,7 @@ class SilentTimerService : Service() {
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(modeLabel)
-            .setContentText(getString(R.string.notif_remaining, timeStr))
-            .setSubText(getString(R.string.notif_until, endTimeStr))
+            .setContentText(getString(R.string.notif_remaining, timeStr, endTimeStr))
             .setSmallIcon(android.R.drawable.ic_lock_silent_mode)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
