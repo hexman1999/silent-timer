@@ -21,20 +21,10 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
-import com.google.android.material.timepicker.MaterialTimePicker
-import com.google.android.material.timepicker.TimeFormat
-import java.util.Calendar
 
 class MainActivity : AppCompatActivity() {
 
-    private var selectedSeconds = 0
-    private var customMode = MODE_SILENT
     private var editMode = false
-
-    private var isUntilMode = false
-    private var untilHour = 0
-    private var untilMinute = 0
-
     private lateinit var presetManager: PresetManager
     private val presets = mutableListOf<Preset>()
 
@@ -55,9 +45,8 @@ class MainActivity : AppCompatActivity() {
         presets.addAll(presetManager.loadPresets())
 
         checkPermissions()
-        setupCustomTimer()
+        setupButtons()
         setupActiveTimerCard()
-        setupEditButton()
         renderPresets()
         updateShortcuts()
 
@@ -103,15 +92,18 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun setupEditButton() {
+    private fun setupButtons() {
+        findViewById<View>(R.id.btnSettings).setOnClickListener {
+            startActivity(Intent(this, SettingsActivity::class.java))
+        }
+        findViewById<View>(R.id.btnOpenCustomTimer).setOnClickListener {
+            CustomTimerDialog().show(supportFragmentManager, "customTimer")
+        }
         findViewById<View>(R.id.btnEditPresets).setOnClickListener {
             editMode = !editMode
             renderPresets()
             val btn = it as MaterialButton
             btn.text = if (editMode) getString(R.string.done) else getString(R.string.edit)
-        }
-        findViewById<View>(R.id.btnSettings).setOnClickListener {
-            startActivity(Intent(this, SettingsActivity::class.java))
         }
     }
 
@@ -246,39 +238,6 @@ class MainActivity : AppCompatActivity() {
         dialog.show(supportFragmentManager, "presetEdit")
     }
 
-    private fun setupCustomTimer() {
-        findViewById<View>(R.id.customTimerText).setOnClickListener { showTimePicker() }
-        findViewById<View>(R.id.btnSelectTime).setOnClickListener { showTimePicker() }
-
-        findViewById<View>(R.id.btnSecInc).setOnClickListener {
-            if (isUntilMode) return@setOnClickListener
-            selectedSeconds = (selectedSeconds + 10).coerceAtMost(35999)
-            updateCustomTimerDisplay()
-        }
-        findViewById<View>(R.id.btnSecDec).setOnClickListener {
-            if (isUntilMode) return@setOnClickListener
-            selectedSeconds = (selectedSeconds - 10).coerceAtLeast(0)
-            updateCustomTimerDisplay()
-        }
-
-        findViewById<View>(R.id.btnSetSilentCustom).setOnClickListener {
-            customMode = MODE_SILENT
-            applyCustomTimer()
-        }
-        findViewById<View>(R.id.btnSetVibrateCustom).setOnClickListener {
-            customMode = MODE_VIBRATE
-            applyCustomTimer()
-        }
-        findViewById<View>(R.id.btnSetDndCustom).setOnClickListener {
-            customMode = MODE_DND
-            applyCustomTimer()
-        }
-
-        findViewById<View>(R.id.btnUntil).setOnClickListener {
-            showUntilTimePicker()
-        }
-    }
-
     private fun setupActiveTimerCard() {
         findViewById<View>(R.id.btnExtend).setOnClickListener {
             startService(Intent(this, SilentTimerService::class.java).apply {
@@ -292,96 +251,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun showTimePicker() {
-        val h = selectedSeconds / 3600
-        val m = (selectedSeconds % 3600) / 60
-        val picker = MaterialTimePicker.Builder()
-            .setTimeFormat(TimeFormat.CLOCK_24H)
-            .setHour(h)
-            .setMinute(m)
-            .setTitleText(R.string.select_time)
-            .build()
-
-        picker.addOnPositiveButtonClickListener {
-            val newSeconds = (picker.hour % 24) * 3600 + (picker.minute % 60) * 60 + (selectedSeconds % 60)
-            selectedSeconds = newSeconds.coerceAtMost(35999)
-            updateCustomTimerDisplay()
-        }
-
-        picker.show(supportFragmentManager, "timePicker")
-    }
-
-    private fun showUntilTimePicker() {
-        val now = Calendar.getInstance()
-        val picker = MaterialTimePicker.Builder()
-            .setTimeFormat(TimeFormat.CLOCK_24H)
-            .setHour(now.get(Calendar.HOUR_OF_DAY))
-            .setMinute(now.get(Calendar.MINUTE))
-            .setTitleText(R.string.until)
-            .build()
-        picker.addOnPositiveButtonClickListener {
-            isUntilMode = true
-            untilHour = picker.hour % 24
-            untilMinute = picker.minute % 60
-            selectedSeconds = computeUntilSeconds(untilHour, untilMinute)
-            updateCustomTimerDisplay()
-        }
-        picker.addOnDismissListener {
-            if (isUntilMode) {
-                isUntilMode = false
-                updateCustomTimerDisplay()
-            }
-        }
-        picker.show(supportFragmentManager, "untilPicker")
-    }
-
-    private fun computeUntilSeconds(hour: Int, minute: Int): Int {
-        val now = Calendar.getInstance()
-        val target = Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, hour)
-            set(Calendar.MINUTE, minute)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-        }
-        if (target <= now) {
-            target.add(Calendar.DAY_OF_MONTH, 1)
-        }
-        return ((target.timeInMillis - now.timeInMillis) / 1000).toInt()
-    }
-
-    private fun updateCustomTimerDisplay() {
-        if (isUntilMode) {
-            findViewById<TextView>(R.id.customTimerText).text =
-                String.format(getString(R.string.until_format), untilHour, untilMinute)
-            findViewById<TextView>(R.id.secondsDisplay).text =
-                getString(R.string.until_duration, formatDuration(selectedSeconds))
-        } else {
-            val h = selectedSeconds / 3600
-            val m = (selectedSeconds % 3600) / 60
-            val s = selectedSeconds % 60
-            findViewById<TextView>(R.id.customTimerText).text =
-                String.format("%02d:%02d", h * 60 + m, s)
-            findViewById<TextView>(R.id.secondsDisplay).text =
-                String.format("%02d", s)
-        }
-    }
-
-    private fun applyCustomTimer() {
-        if (isUntilMode) {
-            selectedSeconds = computeUntilSeconds(untilHour, untilMinute)
-        }
-        if (selectedSeconds <= 0) {
-            Toast.makeText(this, R.string.select_time_first, Toast.LENGTH_SHORT).show()
-            return
-        }
-        val label = modeLabel(customMode)
-        startTimer(selectedSeconds, customMode, label)
-        isUntilMode = false
-        selectedSeconds = 0
-        updateCustomTimerDisplay()
-    }
-
-    private fun startTimer(seconds: Int, mode: Int, label: String) {
+    fun startTimer(seconds: Int, mode: Int, label: String) {
         val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         if (mode == MODE_DND && !nm.isNotificationPolicyAccessGranted) {
             RingerModeManager.requestPolicyPermission(this)
