@@ -18,6 +18,7 @@ object RingerModeManager {
     fun setSilent(context: Context) {
         val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
         audioManager.ringerMode = AudioManager.RINGER_MODE_SILENT
+        clearDndIfGranted(context)
     }
 
     fun setVibrate(context: Context) {
@@ -28,6 +29,7 @@ object RingerModeManager {
     fun setNormal(context: Context) {
         val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
         audioManager.ringerMode = AudioManager.RINGER_MODE_NORMAL
+        clearDndIfGranted(context)
     }
 
     fun setDnd(context: Context) {
@@ -35,18 +37,28 @@ object RingerModeManager {
         if (nm.isNotificationPolicyAccessGranted) {
             nm.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_NONE)
         }
+        val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        audioManager.ringerMode = AudioManager.RINGER_MODE_NORMAL
+    }
+
+    private fun clearDndIfGranted(context: Context) {
+        val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        if (nm.isNotificationPolicyAccessGranted) {
+            nm.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_ALL)
+        }
     }
 
     fun getCurrentMode(context: Context): Int {
         val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
         val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        return if (nm.isNotificationPolicyAccessGranted &&
-            nm.currentInterruptionFilter == NotificationManager.INTERRUPTION_FILTER_NONE
-        ) {
-            MODE_DND
-        } else {
-            audioManager.ringerMode
+        if (nm.isNotificationPolicyAccessGranted) {
+            when (nm.currentInterruptionFilter) {
+                NotificationManager.INTERRUPTION_FILTER_NONE,
+                NotificationManager.INTERRUPTION_FILTER_PRIORITY,
+                NotificationManager.INTERRUPTION_FILTER_ALARMS -> return MODE_DND
+            }
         }
+        return audioManager.ringerMode
     }
 
     fun actualRingerMode(mode: Int): Int = when (mode) {

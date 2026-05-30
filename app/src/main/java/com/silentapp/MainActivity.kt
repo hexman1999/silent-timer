@@ -148,7 +148,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun createPresetCard(preset: Preset): View {
         val card = LayoutInflater.from(this).inflate(R.layout.item_preset, null) as MaterialCardView
-        card.layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        card.layoutParams = LinearLayout.LayoutParams(0, 88.dp(), 1f)
         val lp = card.layoutParams as ViewGroup.MarginLayoutParams
         lp.setMargins(0, 0, 4.dp(), 8.dp())
 
@@ -171,7 +171,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun createAddCard(): View {
         val addCard = LayoutInflater.from(this).inflate(R.layout.item_preset_add, null) as MaterialCardView
-        addCard.layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        addCard.layoutParams = LinearLayout.LayoutParams(0, 88.dp(), 1f)
         val lp = addCard.layoutParams as ViewGroup.MarginLayoutParams
         lp.setMargins(0, 0, 0, 8.dp())
 
@@ -232,8 +232,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         findViewById<View>(R.id.btnUntil).setOnClickListener {
-            isUntilMode = true
-            showTimePicker()
+            showUntilTimePicker()
         }
     }
 
@@ -251,28 +250,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showTimePicker() {
-        if (isUntilMode) {
-            val now = Calendar.getInstance()
-            val picker = MaterialTimePicker.Builder()
-                .setTimeFormat(TimeFormat.CLOCK_24H)
-                .setHour(now.get(Calendar.HOUR_OF_DAY))
-                .setMinute(now.get(Calendar.MINUTE))
-                .setTitleText(R.string.until)
-                .build()
-            picker.addOnPositiveButtonClickListener {
-                untilHour = picker.hour % 24
-                untilMinute = picker.minute % 60
-                selectedSeconds = computeUntilSeconds(untilHour, untilMinute)
-                updateCustomTimerDisplay()
-            }
-            picker.addOnNegativeButtonClickListener {
-                isUntilMode = false
-                updateCustomTimerDisplay()
-            }
-            picker.show(supportFragmentManager, "untilPicker")
-            return
-        }
-
         val h = selectedSeconds / 3600
         val m = (selectedSeconds % 3600) / 60
         val picker = MaterialTimePicker.Builder()
@@ -289,6 +266,30 @@ class MainActivity : AppCompatActivity() {
         }
 
         picker.show(supportFragmentManager, "timePicker")
+    }
+
+    private fun showUntilTimePicker() {
+        val now = Calendar.getInstance()
+        val picker = MaterialTimePicker.Builder()
+            .setTimeFormat(TimeFormat.CLOCK_24H)
+            .setHour(now.get(Calendar.HOUR_OF_DAY))
+            .setMinute(now.get(Calendar.MINUTE))
+            .setTitleText(R.string.until)
+            .build()
+        picker.addOnPositiveButtonClickListener {
+            isUntilMode = true
+            untilHour = picker.hour % 24
+            untilMinute = picker.minute % 60
+            selectedSeconds = computeUntilSeconds(untilHour, untilMinute)
+            updateCustomTimerDisplay()
+        }
+        picker.addOnDismissListener {
+            if (isUntilMode) {
+                isUntilMode = false
+                updateCustomTimerDisplay()
+            }
+        }
+        picker.show(supportFragmentManager, "untilPicker")
     }
 
     private fun computeUntilSeconds(hour: Int, minute: Int): Int {
