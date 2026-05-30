@@ -390,4 +390,6 @@ class MainActivity : AppCompatActivity() {
         (this * resources.displayMetrics.density).toInt()
 
     companion object {
+    }
 }
+
