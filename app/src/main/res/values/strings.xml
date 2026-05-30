@@ -6,9 +6,10 @@
     <string name="set_silent">Silent</string>
     <string name="set_vibrate">Vibrate</string>
     <string name="cancel">Cancel Timer</string>
-    <string name="cancelled">Scheduled restore cancelled</string>
+    <string name="cancelled">Timer cancelled</string>
     <string name="select_time_first">Please select a duration first</string>
     <string name="perm_toast">Please grant Do Not Disturb access to use this app</string>
+    <string name="timer_started">Timer started</string>
     <string name="status_normal">Normal</string>
     <string name="status_silent">Silent</string>
     <string name="status_vibrate">Vibrate</string>
@@ -18,4 +19,13 @@
     <string name="tile_silent">Silent</string>
     <string name="tile_vibrate">Vibrate</string>
     <string name="tile_normal">Sound</string>
+
+    <!-- Notification -->
+    <string name="notif_channel">Silent Timer</string>
+    <string name="notif_channel_desc">Shows remaining silent/vibrate time</string>
+    <string name="notif_silent">Silent mode active</string>
+    <string name="notif_vibrate">Vibrate mode active</string>
+    <string name="notif_remaining">Remaining: %s</string>
+    <string name="notif_extend">+10 min</string>
+    <string name="notif_stop">Stop</string>
 </resources>

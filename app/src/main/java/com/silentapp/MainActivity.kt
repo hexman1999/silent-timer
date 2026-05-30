@@ -1,18 +1,19 @@
 package com.silentapp
 
+import android.Manifest
 import android.app.NotificationManager
+import android.content.Intent
+import android.content.pm.PackageManager
 import android.media.AudioManager
+import android.os.Build
 import android.os.Bundle
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.work.Data
-import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.WorkManager
+import androidx.core.content.ContextCompat
 import com.google.android.material.timepicker.MaterialTimePicker
 import com.google.android.material.timepicker.TimeFormat
-import java.util.concurrent.TimeUnit
 
 class MainActivity : AppCompatActivity() {
 
@@ -53,7 +54,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         btnCancel.setOnClickListener {
-            cancelScheduledRestore()
+            cancelTimer()
         }
 
         updateStatus()
@@ -69,6 +70,13 @@ class MainActivity : AppCompatActivity() {
         if (!nm.isNotificationPolicyAccessGranted) {
             Toast.makeText(this, getString(R.string.perm_toast), Toast.LENGTH_LONG).show()
             RingerModeManager.requestPolicyPermission(this)
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED
+            ) {
+                requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 100)
+            }
         }
     }
 
@@ -109,33 +117,22 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        audioManager.ringerMode = mode
+        val intent = Intent(this, SilentTimerService::class.java).apply {
+            action = SilentTimerService.ACTION_START
+            putExtra(SilentTimerService.EXTRA_MINUTES, selectedMinutes)
+            putExtra(SilentTimerService.EXTRA_MODE, mode)
+        }
+        ContextCompat.startForegroundService(this, intent)
 
-        val targetMode = AudioManager.RINGER_MODE_NORMAL
-        val inputData = Data.Builder()
-            .putInt(SilentModeWorker.KEY_TARGET_MODE, targetMode)
-            .build()
-
-        val workRequest = OneTimeWorkRequestBuilder<SilentModeWorker>()
-            .setInitialDelay(selectedMinutes.toLong(), TimeUnit.MINUTES)
-            .setInputData(inputData)
-            .addTag("silent_restore")
-            .build()
-
-        WorkManager.getInstance(this).cancelAllWorkByTag("silent_restore")
-        WorkManager.getInstance(this).enqueue(workRequest)
-
-        val label = if (mode == AudioManager.RINGER_MODE_SILENT) "Silent" else "Vibrate"
-        Toast.makeText(
-            this,
-            "$label for $selectedMinutes minutes",
-            Toast.LENGTH_SHORT
-        ).show()
+        Toast.makeText(this, getString(R.string.timer_started), Toast.LENGTH_SHORT).show()
         updateStatus()
     }
 
-    private fun cancelScheduledRestore() {
-        WorkManager.getInstance(this).cancelAllWorkByTag("silent_restore")
+    private fun cancelTimer() {
+        val intent = Intent(this, SilentTimerService::class.java).apply {
+            action = SilentTimerService.ACTION_CANCEL
+        }
+        startService(intent)
         Toast.makeText(this, getString(R.string.cancelled), Toast.LENGTH_SHORT).show()
     }
 
