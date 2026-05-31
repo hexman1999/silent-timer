@@ -477,6 +477,7 @@ class MainActivity : AppCompatActivity() {
             val totalMs = SilentTimerService.totalDuration.coerceAtLeast(1)
             val remainingMs = rem.coerceAtLeast(0)
             val pct = ((totalMs - remainingMs) * 1000 / totalMs).toInt()
+            progress.max = 1000
             progress.setProgressCompat(pct, true)
 
             if (section.visibility != View.VISIBLE) {

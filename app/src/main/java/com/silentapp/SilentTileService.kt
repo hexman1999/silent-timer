@@ -15,9 +15,28 @@ class SilentTileService : TileService() {
 
     private data class CycleItem(val label: String, val mode: Int, val seconds: Int, val presetId: String? = null)
 
+    private val tileHandler = Handler(Looper.getMainLooper())
+    private val tileTickRunnable = object : Runnable {
+        override fun run() {
+            if (SilentTimerService.isTimerRunning) {
+                updateTile()
+                tileHandler.postDelayed(this, 1000)
+            }
+        }
+    }
+
     override fun onStartListening() {
         super.onStartListening()
+        tileHandler.removeCallbacks(tileTickRunnable)
+        if (SilentTimerService.isTimerRunning) {
+            tileHandler.post(tileTickRunnable)
+        }
         updateTile()
+    }
+
+    override fun onStopListening() {
+        super.onStopListening()
+        tileHandler.removeCallbacks(tileTickRunnable)
     }
 
     override fun onClick() {
@@ -47,6 +66,7 @@ class SilentTileService : TileService() {
                 startForegroundServiceSafe(this@SilentTileService, this)
             }
             prefs.edit().putInt(KEY_POS, 0).apply()
+            tileHandler.removeCallbacks(tileTickRunnable)
             updateTile()
             collapseQsPanel()
             return
@@ -87,8 +107,21 @@ class SilentTileService : TileService() {
         }
 
         prefs.edit().putInt(KEY_POS, nextPos).apply()
+        tileHandler.removeCallbacks(tileTickRunnable)
+        if (SilentTimerService.isTimerRunning) {
+            tileHandler.post(tileTickRunnable)
+        }
         updateTile()
         collapseQsPanel()
+    }
+
+    private fun formatRemaining(ms: Long): String {
+        val totalSecs = (ms / 1000).coerceAtLeast(0)
+        val h = totalSecs / 3600
+        val m = (totalSecs % 3600) / 60
+        val s = totalSecs % 60
+        return if (h > 0) String.format("%d:%02d:%02d", h, m, s)
+        else String.format("%d:%02d", m, s)
     }
 
     private fun collapseQsPanel() {
@@ -131,8 +164,15 @@ class SilentTileService : TileService() {
             return
         }
 
-        val pos = if (SilentTimerService.isTimerRunning) 0
-                  else getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).getInt(KEY_POS, 0) % items.size
+        if (SilentTimerService.isTimerRunning) {
+            val rem = SilentTimerService.endTime - System.currentTimeMillis()
+            tile.label = formatRemaining(rem)
+            tile.state = Tile.STATE_ACTIVE
+            tile.updateTile()
+            return
+        }
+
+        val pos = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).getInt(KEY_POS, 0) % items.size
         val current = items[pos]
         tile.label = current.label
         tile.state = when (current.mode) {
