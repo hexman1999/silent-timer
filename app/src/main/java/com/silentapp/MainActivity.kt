@@ -11,6 +11,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.transition.TransitionManager
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -357,12 +358,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateActiveTimerCard() {
-        val card = findViewById<View>(R.id.activeTimerCard)
+        val section = findViewById<View>(R.id.timerSection)
         val timeText = findViewById<TextView>(R.id.activeTimerTime)
         val title = findViewById<TextView>(R.id.activeTimerTitle)
 
         if (SilentTimerService.isTimerRunning) {
-            card.visibility = View.VISIBLE
             val rem = SilentTimerService.endTime - System.currentTimeMillis()
             val totalSecs = (rem / 1000).coerceAtLeast(0)
             val h = totalSecs / 3600
@@ -375,8 +375,20 @@ class MainActivity : AppCompatActivity() {
 
             val modeLabel = modeLabel(SilentTimerService.activeMode)
             title.text = "$modeLabel — ${getString(R.string.active_timer)}"
+
+            if (section.visibility != View.VISIBLE) {
+                TransitionManager.beginDelayedTransition(
+                    findViewById<View>(R.id.statusCard) as ViewGroup
+                )
+                section.visibility = View.VISIBLE
+            }
         } else {
-            card.visibility = View.GONE
+            if (section.visibility == View.VISIBLE) {
+                TransitionManager.beginDelayedTransition(
+                    findViewById<View>(R.id.statusCard) as ViewGroup
+                )
+                section.visibility = View.GONE
+            }
         }
     }
 

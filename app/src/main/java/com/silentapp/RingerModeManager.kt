@@ -30,11 +30,11 @@ object RingerModeManager {
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             vibrator.vibrate(
-                VibrationEffect.createOneShot(200, VibrationEffect.DEFAULT_AMPLITUDE)
+                VibrationEffect.createWaveform(longArrayOf(0, 200, 150, 200), -1)
             )
         } else {
             @Suppress("DEPRECATION")
-            vibrator.vibrate(200)
+            vibrator.vibrate(longArrayOf(0, 200, 150, 200), -1)
         }
     }
 
