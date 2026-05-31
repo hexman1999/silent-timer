@@ -197,11 +197,11 @@ class MainActivity : AppCompatActivity() {
                     (event.clipData?.getItemAt(0)?.text?.toString()?.let { it != preset.id }) ?: false
                 }
                 android.view.DragEvent.ACTION_DRAG_ENTERED -> {
-                    card.strokeWidth = 3.dp().toFloat()
+                    card.strokeWidth = 3.dp()
                     true
                 }
                 android.view.DragEvent.ACTION_DRAG_EXITED -> {
-                    card.strokeWidth = 1.dp().toFloat()
+                    card.strokeWidth = 1.dp()
                     true
                 }
                 android.view.DragEvent.ACTION_DROP -> {
@@ -217,11 +217,11 @@ class MainActivity : AppCompatActivity() {
                             card.post { renderPresets() }
                         }
                     }
-                    card.strokeWidth = 1.dp().toFloat()
+                    card.strokeWidth = 1.dp()
                     true
                 }
                 android.view.DragEvent.ACTION_DRAG_ENDED -> {
-                    card.strokeWidth = 1.dp().toFloat()
+                    card.strokeWidth = 1.dp()
                     true
                 }
                 else -> true
