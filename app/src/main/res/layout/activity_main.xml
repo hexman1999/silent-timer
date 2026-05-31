@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/surface"
+    android:background="?attr/colorSurface"
     android:fitsSystemWindows="true">
 
     <ScrollView
@@ -27,7 +27,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="@string/app_name"
-                    android:textColor="@color/on_surface"
+                    android:textColor="?attr/colorOnSurface"
                     android:textSize="22sp"
                     android:textStyle="bold" />
 
@@ -48,7 +48,7 @@
                 android:layout_marginTop="20dp"
                 style="@style/Widget.Material3.CardView.Filled"
                 app:cardElevation="0dp"
-                app:strokeColor="@color/outline"
+                app:strokeColor="?attr/colorOutline"
                 app:strokeWidth="1dp">
 
                 <LinearLayout
@@ -62,6 +62,7 @@
                         android:layout_width="48dp"
                         android:layout_height="48dp"
                         android:background="@drawable/status_bg"
+                        android:backgroundTint="?attr/colorPrimaryContainer"
                         android:gravity="center"
                         android:text="&#x1F515;"
                         android:textSize="24sp" />
@@ -78,7 +79,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/status_normal"
-                            android:textColor="@color/on_surface"
+                            android:textColor="?attr/colorOnSurface"
                             android:textSize="20sp"
                             android:textStyle="bold" />
 
@@ -87,7 +88,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/status_subtext"
-                            android:textColor="@color/outline"
+                            android:textColor="?attr/colorOutline"
                             android:textSize="14sp" />
                     </LinearLayout>
                 </LinearLayout>
@@ -98,7 +99,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
-                android:backgroundTint="@color/primary_container"
+                android:backgroundTint="?attr/colorPrimaryContainer"
                 android:visibility="gone"
                 app:cardElevation="0dp"
                 app:strokeWidth="0dp">
@@ -120,7 +121,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/active_timer"
-                            android:textColor="@color/on_primary_container"
+                            android:textColor="?attr/colorOnPrimaryContainer"
                             android:textSize="14sp"
                             android:textStyle="bold" />
 
@@ -129,7 +130,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="--:--"
-                            android:textColor="@color/on_primary_container"
+                            android:textColor="?attr/colorOnPrimaryContainer"
                             android:textSize="36sp"
                             android:textStyle="bold" />
                     </LinearLayout>
@@ -173,7 +174,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="@string/presets"
-                    android:textColor="@color/on_surface"
+                    android:textColor="?attr/colorOnSurface"
                     android:textSize="16sp"
                     android:textStyle="bold" />
 

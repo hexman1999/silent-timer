@@ -26,7 +26,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
         android:text="Duration (HH:MM)"
-        android:textColor="@color/on_surface"
+        android:textColor="?attr/colorOnSurface"
         android:textSize="14sp" />
 
     <LinearLayout
@@ -64,8 +64,8 @@
             android:layout_height="wrap_content"
             android:layout_marginHorizontal="8dp"
             android:text="00"
-            android:textColor="@color/on_surface"
-            android:textSize="16sp" />
+                android:textColor="?attr/colorOnSurface"
+                android:textSize="16sp" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/presetSecInc"
@@ -82,7 +82,7 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="4dp"
             android:text="sec"
-            android:textColor="@color/outline"
+            android:textColor="?attr/colorOutline"
             android:textSize="14sp" />
     </LinearLayout>
 
@@ -91,7 +91,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
         android:text="Mode"
-        android:textColor="@color/on_surface"
+        android:textColor="?attr/colorOnSurface"
         android:textSize="14sp" />
 
     <RadioGroup

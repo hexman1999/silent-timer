@@ -21,6 +21,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
+import com.google.android.material.color.DynamicColors
 
 class MainActivity : AppCompatActivity() {
 
@@ -43,6 +44,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        DynamicColors.applyToActivityIfAvailable(this)
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
@@ -260,14 +262,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun startTimer(seconds: Int, mode: Int, label: String) {
-        if (SilentTimerService.isTimerRunning) {
-            startService(Intent(this, SilentTimerService::class.java).apply {
-                action = SilentTimerService.ACTION_CANCEL
-            })
-            Toast.makeText(this, getString(R.string.cancelled), Toast.LENGTH_SHORT).show()
-            return
-        }
-
         val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         if (mode == MODE_DND && !nm.isNotificationPolicyAccessGranted) {
             RingerModeManager.requestPolicyPermission(this)

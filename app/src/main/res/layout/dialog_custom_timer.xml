@@ -11,7 +11,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="center"
         android:text="@string/custom_timer"
-        android:textColor="@color/on_surface"
+        android:textColor="?attr/colorOnSurface"
         android:textSize="20sp"
         android:textStyle="bold" />
 
@@ -45,8 +45,9 @@
                 android:layout_height="56dp"
                 android:gravity="center"
                 android:background="@drawable/counter_bg"
+                android:backgroundTint="?attr/colorSurfaceVariant"
                 android:text="00"
-                android:textColor="@color/on_surface"
+                android:textColor="?attr/colorOnSurface"
                 android:textSize="32sp"
                 android:textStyle="bold" />
 
@@ -66,7 +67,7 @@
             android:layout_height="wrap_content"
             android:layout_marginHorizontal="4dp"
             android:text=":"
-            android:textColor="@color/on_surface"
+            android:textColor="?attr/colorOnSurface"
             android:textSize="32sp"
             android:textStyle="bold" />
 
@@ -92,8 +93,9 @@
                 android:layout_height="56dp"
                 android:gravity="center"
                 android:background="@drawable/counter_bg"
+                android:backgroundTint="?attr/colorSurfaceVariant"
                 android:text="00"
-                android:textColor="@color/on_surface"
+                android:textColor="?attr/colorOnSurface"
                 android:textSize="32sp"
                 android:textStyle="bold" />
 
@@ -113,7 +115,7 @@
             android:layout_height="wrap_content"
             android:layout_marginHorizontal="4dp"
             android:text=":"
-            android:textColor="@color/on_surface"
+            android:textColor="?attr/colorOnSurface"
             android:textSize="32sp"
             android:textStyle="bold" />
 
@@ -139,8 +141,9 @@
                 android:layout_height="56dp"
                 android:gravity="center"
                 android:background="@drawable/counter_bg"
+                android:backgroundTint="?attr/colorSurfaceVariant"
                 android:text="00"
-                android:textColor="@color/on_surface"
+                android:textColor="?attr/colorOnSurface"
                 android:textSize="32sp"
                 android:textStyle="bold" />
 

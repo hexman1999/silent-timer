@@ -30,14 +30,6 @@ class ShortcutActivity : AppCompatActivity() {
         val presetId = intent.getStringExtra(EXTRA_PRESET_ID)
         if (seconds <= 0 || mode < 0) return
 
-        if (SilentTimerService.isTimerRunning) {
-            startService(Intent(this, SilentTimerService::class.java).apply {
-                action = SilentTimerService.ACTION_CANCEL
-            })
-            Toast.makeText(this, getString(R.string.cancelled), Toast.LENGTH_SHORT).show()
-            return
-        }
-
         val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         if (mode == MODE_DND && !nm.isNotificationPolicyAccessGranted) {
             RingerModeManager.requestPolicyPermission(this)

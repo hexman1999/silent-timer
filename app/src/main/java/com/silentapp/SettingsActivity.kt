@@ -5,12 +5,14 @@ import android.view.View
 import android.widget.RadioGroup
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import com.google.android.material.color.DynamicColors
 
 class SettingsActivity : AppCompatActivity() {
 
     private lateinit var presetManager: PresetManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        DynamicColors.applyToActivityIfAvailable(this)
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_settings)
 

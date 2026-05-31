@@ -72,8 +72,6 @@ class SilentTimerService : Service() {
                 val seconds = intent.getIntExtra(EXTRA_SECONDS, 0)
                 val mode = intent.getIntExtra(EXTRA_MODE, MODE_SILENT)
                 val presetId = intent.getStringExtra(EXTRA_PRESET_ID)
-                expectedRingerMode = RingerModeManager.actualRingerMode(mode)
-                RingerModeManager.applyMode(this, mode)
                 startTimer(seconds, mode, presetId)
             }
             ACTION_EXTEND -> {
@@ -89,6 +87,12 @@ class SilentTimerService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     private fun startTimer(seconds: Int, mode: Int, presetId: String? = null) {
+        if (running) {
+            running = false
+            handler.removeCallbacks(tickRunnable)
+        }
+        expectedRingerMode = RingerModeManager.actualRingerMode(mode)
+        RingerModeManager.applyMode(this, mode)
         handler.removeCallbacks(tickRunnable)
         running = true
         isTimerRunning = true
@@ -97,7 +101,7 @@ class SilentTimerService : Service() {
         currentMode = mode
         activeMode = mode
         activePresetId = presetId
-        this@SilentTimerService.endTime = endTime
+        SilentTimerService.endTime = endTime
         updateNotification()
         handler.postDelayed(tickRunnable, 1000)
         startForeground(NOTIFICATION_ID, buildNotification())
@@ -106,7 +110,7 @@ class SilentTimerService : Service() {
     private fun extendTimer() {
         endTime += 10 * 60 * 1000L
         totalDuration += 10 * 60 * 1000L
-        this@SilentTimerService.endTime = endTime
+        SilentTimerService.endTime = endTime
         updateNotification()
     }
 
@@ -178,7 +182,8 @@ class SilentTimerService : Service() {
         val notifText = getString(R.string.notif_remaining, timeStr, endTimeStr)
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(modeLabel)
-            .setContentText(notifText)
+            .setContentText(timeStr)
+            .setSubText(getString(R.string.notif_until, endTimeStr))
             .setStyle(NotificationCompat.BigTextStyle().bigText(notifText))
             .setSmallIcon(android.R.drawable.ic_lock_silent_mode)
             .setOngoing(true)

@@ -159,15 +159,6 @@ class CustomTimerDialog : DialogFragment() {
                 hours * 3600 + minutes * 60 + seconds
             }
             if (totalSeconds <= 0) return
-            if (SilentTimerService.isTimerRunning) {
-                requireContext().startService(
-                    Intent(requireContext(), SilentTimerService::class.java).apply {
-                        action = SilentTimerService.ACTION_CANCEL
-                    }
-                )
-                dismiss()
-                return
-            }
             val nm = requireContext().getSystemService(android.app.NotificationManager::class.java)
             if (mode == MODE_DND && !nm.isNotificationPolicyAccessGranted) {
                 RingerModeManager.requestPolicyPermission(requireContext())
