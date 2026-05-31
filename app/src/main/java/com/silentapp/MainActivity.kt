@@ -352,22 +352,35 @@ class MainActivity : AppCompatActivity() {
         val mode = RingerModeManager.getCurrentMode(this)
         val icon = findViewById<TextView>(R.id.statusIcon)
         val label = findViewById<TextView>(R.id.statusLabel)
+        val iconBg = findViewById<View>(R.id.statusIconBg)
         when (mode) {
             MODE_NORMAL -> {
                 icon.text = "\uD83D\uDD14"
                 label.text = getString(R.string.status_normal)
+                iconBg.setBackgroundTintList(android.content.res.ColorStateList.valueOf(
+                    androidx.core.content.ContextCompat.getColor(this, R.color.primary_container)
+                ))
             }
             MODE_SILENT -> {
                 icon.text = "\uD83D\uDD15"
                 label.text = getString(R.string.status_silent)
+                iconBg.setBackgroundTintList(android.content.res.ColorStateList.valueOf(
+                    androidx.core.content.ContextCompat.getColor(this, R.color.primary_container)
+                ))
             }
             MODE_VIBRATE -> {
                 icon.text = "\uD83D\uDCF3"
                 label.text = getString(R.string.status_vibrate)
+                iconBg.setBackgroundTintList(android.content.res.ColorStateList.valueOf(
+                    androidx.core.content.ContextCompat.getColor(this, R.color.secondary_container)
+                ))
             }
             MODE_DND -> {
                 icon.text = "\uD83D\uDCF4"
                 label.text = "DND"
+                iconBg.setBackgroundTintList(android.content.res.ColorStateList.valueOf(
+                    androidx.core.content.ContextCompat.getColor(this, R.color.error)
+                ))
             }
         }
     }
@@ -413,6 +426,7 @@ class MainActivity : AppCompatActivity() {
         val section = findViewById<View>(R.id.timerSection)
         val timeText = findViewById<TextView>(R.id.activeTimerTime)
         val title = findViewById<TextView>(R.id.activeTimerTitle)
+        val progress = findViewById<com.google.android.material.progressindicator.LinearProgressIndicator>(R.id.timerProgress)
 
         if (SilentTimerService.isTimerRunning) {
             val rem = SilentTimerService.endTime - System.currentTimeMillis()
@@ -426,7 +440,12 @@ class MainActivity : AppCompatActivity() {
                 String.format("%d:%02d", m, s)
 
             val modeLabel = modeLabel(SilentTimerService.activeMode)
-            title.text = "$modeLabel — ${getString(R.string.active_timer)}"
+            title.text = modeLabel
+
+            val totalMs = SilentTimerService.totalDuration.coerceAtLeast(1)
+            val remainingMs = rem.coerceAtLeast(0)
+            val pct = ((totalMs - remainingMs) * 1000 / totalMs).toInt()
+            progress.setProgressCompat(pct, true)
 
             if (section.visibility != View.VISIBLE) {
                 smoothExpand(section)

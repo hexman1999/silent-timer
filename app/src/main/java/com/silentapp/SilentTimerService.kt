@@ -102,6 +102,7 @@ class SilentTimerService : Service() {
         activeMode = mode
         activePresetId = presetId
         SilentTimerService.endTime = endTime
+        SilentTimerService.totalDuration = totalDuration
         updateNotification()
         handler.postDelayed(tickRunnable, 1000)
         startForeground(NOTIFICATION_ID, buildNotification())
@@ -111,6 +112,7 @@ class SilentTimerService : Service() {
         endTime += 10 * 60 * 1000L
         totalDuration += 10 * 60 * 1000L
         SilentTimerService.endTime = endTime
+        SilentTimerService.totalDuration = totalDuration
         updateNotification()
     }
 
@@ -234,6 +236,8 @@ class SilentTimerService : Service() {
         var isTimerRunning = false
             private set
         var endTime = 0L
+            private set
+        var totalDuration = 0L
             private set
         var activeMode = MODE_SILENT
             private set
