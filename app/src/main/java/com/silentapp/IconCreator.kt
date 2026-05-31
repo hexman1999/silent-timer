@@ -17,4 +17,15 @@ object IconCreator {
     fun getNormalIcon(context: Context): Icon {
         return Icon.createWithResource(context, R.drawable.ic_normal)
     }
+
+    fun getDndIcon(context: Context): Icon {
+        return Icon.createWithResource(context, R.drawable.ic_dnd)
+    }
+
+    fun getIconForMode(context: Context, mode: Int): Icon = when (mode) {
+        MODE_SILENT -> getSilentIcon(context)
+        MODE_VIBRATE -> getVibrateIcon(context)
+        MODE_DND -> getDndIcon(context)
+        else -> getNormalIcon(context)
+    }
 }

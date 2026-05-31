@@ -6,7 +6,6 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.pm.ShortcutInfo
 import android.content.pm.ShortcutManager
-import android.graphics.drawable.Icon
 import android.os.Build
 import android.text.SpannableString
 import android.text.style.ForegroundColorSpan
@@ -368,7 +367,7 @@ class MainActivity : AppCompatActivity() {
             ShortcutInfo.Builder(this, "preset_$i")
                 .setShortLabel(preset.label)
                 .setLongLabel("${preset.label} · ${preset.subText()} · ${preset.modeLabel()}")
-                .setIcon(Icon.createWithResource(this, android.R.drawable.ic_lock_silent_mode))
+                .setIcon(IconCreator.getIconForMode(this, preset.mode))
                 .setIntent(shortcutIntent)
                 .build()
         }
