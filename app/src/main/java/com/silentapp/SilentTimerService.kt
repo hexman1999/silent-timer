@@ -119,7 +119,7 @@ class SilentTimerService : Service() {
         isTimerRunning = false
         activePresetId = null
         handler.removeCallbacks(tickRunnable)
-        RingerModeManager.applyMode(this, MODE_NORMAL)
+        RingerModeManager.applyModeDeactivate(this)
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
     }
@@ -128,7 +128,7 @@ class SilentTimerService : Service() {
         running = false
         isTimerRunning = false
         activePresetId = null
-        RingerModeManager.applyMode(this, MODE_NORMAL)
+        RingerModeManager.applyModeDeactivate(this)
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
     }

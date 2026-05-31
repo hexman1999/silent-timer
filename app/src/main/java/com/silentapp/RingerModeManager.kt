@@ -10,24 +10,45 @@ import android.os.VibratorManager
 
 object RingerModeManager {
 
-    fun applyMode(context: Context, mode: Int) {
+    fun applyMode(context: Context, mode: Int, vibrateOn: Boolean = true) {
         when (mode) {
             MODE_DND -> setDnd(context)
             MODE_SILENT -> setSilent(context)
             MODE_VIBRATE -> setVibrate(context)
             MODE_NORMAL -> setNormal(context)
         }
-        vibrateShort(context)
+        if (vibrateOn) vibrateActivate(context)
     }
 
-    private fun vibrateShort(context: Context) {
-        val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+    fun applyModeDeactivate(context: Context) {
+        applyMode(context, MODE_NORMAL, vibrateOn = false)
+        vibrateDeactivate(context)
+    }
+
+    private fun getVibrator(context: Context): Vibrator {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val vm = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
             vm.defaultVibrator
         } else {
             @Suppress("DEPRECATION")
             context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
         }
+    }
+
+    private fun vibrateActivate(context: Context) {
+        val vibrator = getVibrator(context)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            vibrator.vibrate(
+                VibrationEffect.createWaveform(longArrayOf(0, 400), -1)
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            vibrator.vibrate(longArrayOf(0, 400), -1)
+        }
+    }
+
+    private fun vibrateDeactivate(context: Context) {
+        val vibrator = getVibrator(context)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             vibrator.vibrate(
                 VibrationEffect.createWaveform(longArrayOf(0, 200, 150, 200), -1)

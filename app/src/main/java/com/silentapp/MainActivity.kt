@@ -8,6 +8,8 @@ import android.content.pm.ShortcutInfo
 import android.content.pm.ShortcutManager
 import android.graphics.drawable.Icon
 import android.os.Build
+import android.text.SpannableString
+import android.text.style.ForegroundColorSpan
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -85,8 +87,9 @@ class MainActivity : AppCompatActivity() {
         val seconds = intent.getIntExtra(ShortcutActivity.EXTRA_SECONDS, 0)
         val mode = intent.getIntExtra(ShortcutActivity.EXTRA_MODE, -1)
         val label = intent.getStringExtra(ShortcutActivity.EXTRA_LABEL)
+        val presetId = intent.getStringExtra(ShortcutActivity.EXTRA_PRESET_ID)
         if (seconds > 0 && mode >= 0 && label != null) {
-            startTimer(seconds, mode, label)
+            startTimer(seconds, mode, label, presetId)
         }
     }
 
@@ -170,7 +173,9 @@ class MainActivity : AppCompatActivity() {
         lp.setMargins(0, 0, if (isGrid) 4.dp() else 0, 8.dp())
 
         card.tag = preset.id
-        card.findViewById<TextView>(R.id.presetLabel).text = preset.label
+        val labelView = card.findViewById<TextView>(R.id.presetLabel)
+        labelView.text = preset.label
+        labelView.setTag(R.id.presetLabel, preset.label)
         card.findViewById<TextView>(R.id.presetSub).text = "${preset.subText()} · ${preset.modeLabel()}"
 
         val deleteBtn = card.findViewById<View>(R.id.presetDeleteBtn)
@@ -184,8 +189,12 @@ class MainActivity : AppCompatActivity() {
         card.setOnClickListener {
             if (editMode) {
                 showPresetDialog(preset)
+            } else if (SilentTimerService.isTimerRunning && preset.id == SilentTimerService.activePresetId) {
+                startService(Intent(this, SilentTimerService::class.java).apply {
+                    action = SilentTimerService.ACTION_CANCEL
+                })
             } else {
-                startTimer(preset.totalSeconds, preset.mode, preset.label)
+                startTimer(preset.totalSeconds, preset.mode, preset.label, preset.id)
             }
         }
         deleteBtn.setOnClickListener { showPresetDialog(preset) }
@@ -262,7 +271,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    fun startTimer(seconds: Int, mode: Int, label: String) {
+    fun startTimer(seconds: Int, mode: Int, label: String, presetId: String? = null) {
         val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         if (mode == MODE_DND && !nm.isNotificationPolicyAccessGranted) {
             RingerModeManager.requestPolicyPermission(this)
@@ -274,6 +283,7 @@ class MainActivity : AppCompatActivity() {
             action = SilentTimerService.ACTION_START
             putExtra(SilentTimerService.EXTRA_SECONDS, seconds)
             putExtra(SilentTimerService.EXTRA_MODE, mode)
+            putExtra(SilentTimerService.EXTRA_PRESET_ID, presetId)
         }
         ContextCompat.startForegroundService(this, intent)
         val display = formatDuration(seconds)
@@ -343,6 +353,20 @@ class MainActivity : AppCompatActivity() {
                 android.graphics.Color.TRANSPARENT
             )
         )
+        val labelView = card.findViewById<TextView>(R.id.presetLabel)
+        val baseLabel = labelView.getTag(R.id.presetLabel) as? String ?: ""
+        if (isActive) {
+            val spannable = SpannableString("$baseLabel * Active")
+            spannable.setSpan(
+                ForegroundColorSpan(android.graphics.Color.GREEN),
+                baseLabel.length + 1,
+                spannable.length,
+                0
+            )
+            labelView.text = spannable
+        } else {
+            labelView.text = baseLabel
+        }
     }
 
     private fun highlightAllPresets() {

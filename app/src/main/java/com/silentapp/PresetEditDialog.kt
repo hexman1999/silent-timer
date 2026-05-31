@@ -52,8 +52,8 @@ class PresetEditDialog : DialogFragment() {
             deleteBtn.visibility = View.VISIBLE
         } else {
             totalSeconds = 1800
-            selectedMode = MODE_SILENT
-            modeGroup.check(R.id.presetModeSilent)
+            selectedMode = MODE_VIBRATE
+            modeGroup.check(R.id.presetModeVibrate)
             deleteBtn.visibility = View.GONE
         }
         updateTimeButton(timeBtn)
@@ -98,11 +98,9 @@ class PresetEditDialog : DialogFragment() {
         }
 
         saveBtn.setOnClickListener {
-            val label = nameInput.text?.toString()?.trim() ?: ""
-            if (label.isEmpty()) {
-                nameInput.error = "Name is required"
-                return@setOnClickListener
-            }
+            val label = nameInput.text?.toString()?.trim()?.ifEmpty {
+                "${modeLabel(selectedMode)} ${formatDuration(totalSeconds)}"
+            } ?: "${modeLabel(selectedMode)} ${formatDuration(totalSeconds)}"
             if (totalSeconds <= 0) {
                 return@setOnClickListener
             }
