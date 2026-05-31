@@ -30,7 +30,7 @@
     <string name="notif_channel_desc">Shows remaining silent/vibrate time</string>
     <string name="notif_silent">Silent mode active</string>
     <string name="notif_vibrate">Vibrate mode active</string>
-    <string name="notif_remaining">%s remaining (until %s)</string>
+    <string name="notif_remaining">%s remaining (Until %s)</string>
     <string name="notif_extend">+10 min</string>
     <string name="notif_stop">Stop</string>
     <string name="notif_until">until %s</string>

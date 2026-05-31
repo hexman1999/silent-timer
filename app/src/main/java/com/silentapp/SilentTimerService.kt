@@ -147,7 +147,6 @@ class SilentTimerService : Service() {
         val timeStr = if (h > 0) String.format("%d:%02d:%02d", h, m, s)
         else String.format("%d:%02d", m, s)
 
-        val modeLabel = modeLabel(currentMode)
         val progressMax = (totalDuration / 1000).toInt()
         val progressCurrent = (rem / 1000).toInt()
 
@@ -181,8 +180,8 @@ class SilentTimerService : Service() {
 
         val notifText = getString(R.string.notif_remaining, timeStr, endTimeStr)
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle(modeLabel)
-            .setContentText(notifText)
+            .setContentTitle("$timeStr remaining")
+            .setContentText("Until $endTimeStr")
             .setStyle(NotificationCompat.BigTextStyle().bigText(notifText))
             .setSmallIcon(android.R.drawable.ic_lock_silent_mode)
             .setOngoing(true)
