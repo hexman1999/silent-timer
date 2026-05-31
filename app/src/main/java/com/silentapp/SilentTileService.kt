@@ -66,10 +66,10 @@ class SilentTileService : TileService() {
         when (intent?.action) {
             ACTION_ICON_TAP -> handleIconTap()
             ACTION_LABEL_TAP -> {
-                if (isAdded()) showPresetDialog()
+                if (qsTile != null) showPresetDialog()
                 else startActivityAndCollapse(
                     Intent(this, MainActivity::class.java).apply {
-                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                        this.flags = Intent.FLAG_ACTIVITY_NEW_TASK
                     }
                 )
             }
@@ -142,7 +142,7 @@ class SilentTileService : TileService() {
     }
 
     private fun showPresetDialog() {
-        if (!isAdded()) return
+        if (qsTile == null) return
 
         val presetManager = PresetManager(this)
         val presets = presetManager.loadPresets()
@@ -170,37 +170,37 @@ class SilentTileService : TileService() {
         val dialog = AlertDialog.Builder(this)
             .setTitle("Select Mode")
             .setItems(labels.toTypedArray()) { _, which ->
-                val action = actions[which]
-                when (action) {
+                val dialogAction = actions[which]
+                when (dialogAction) {
                     is DialogAction.STOP -> {
-                        Intent(this, SilentTimerService::class.java).apply {
-                            action = SilentTimerService.ACTION_CANCEL
-                            startForegroundServiceSafe(this@SilentTileService, this)
+                        val cancelIntent = Intent(this, SilentTimerService::class.java).apply {
+                            this.action = SilentTimerService.ACTION_CANCEL
                         }
+                        startForegroundServiceSafe(this, cancelIntent)
                         tileHandler.removeCallbacks(tileTickRunnable)
                         refreshTile()
                         collapseQsPanel()
                     }
                     is DialogAction.PRESET -> {
-                        val p = action.preset
+                        val p = dialogAction.preset
                         val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
                         if (p.mode == MODE_DND && !nm.isNotificationPolicyAccessGranted) {
                             Toast.makeText(this, "DND access required", Toast.LENGTH_LONG).show()
                             return@setItems
                         }
                         RingerModeManager.applyMode(this, p.mode)
-                        val intent = Intent(this, SilentTimerService::class.java).apply {
-                            action = SilentTimerService.ACTION_START
+                        val startIntent = Intent(this, SilentTimerService::class.java).apply {
+                            this.action = SilentTimerService.ACTION_START
                             putExtra(SilentTimerService.EXTRA_SECONDS, p.totalSeconds)
                             putExtra(SilentTimerService.EXTRA_MODE, p.mode)
                             putExtra(SilentTimerService.EXTRA_PRESET_ID, p.id)
                         }
-                        startForegroundServiceSafe(this, intent)
+                        startForegroundServiceSafe(this, startIntent)
                         refreshTile()
                         collapseQsPanel()
                     }
                     is DialogAction.MODE -> {
-                        RingerModeManager.applyMode(this, action.mode)
+                        RingerModeManager.applyMode(this, dialogAction.mode)
                         refreshTile()
                         collapseQsPanel()
                     }
@@ -323,7 +323,7 @@ class SilentTileService : TileService() {
                 rv.setOnClickPendingIntent(R.id.tile_icon_area, iconPI)
                 rv.setOnClickPendingIntent(R.id.tile_label, labelPI)
 
-                setTileVisual(android.service.quicksettings.TileVisual(rv, this))
+                setTileVisual(TileService.TileVisual(rv, this))
             } catch (_: Exception) {
             }
         }
