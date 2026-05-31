@@ -183,7 +183,7 @@ class SilentTimerService : Service() {
         val notifText = getString(R.string.notif_remaining, timeStr, endTimeStr)
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("$timeStr remaining")
-            .setContentText("Until $endTimeStr")
+            .setContentText("$timeStr remaining until $endTimeStr")
             .setStyle(NotificationCompat.BigTextStyle().bigText(notifText))
             .setSmallIcon(android.R.drawable.ic_lock_silent_mode)
             .setOngoing(true)
