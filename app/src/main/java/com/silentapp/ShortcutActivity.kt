@@ -14,13 +14,13 @@ class ShortcutActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         handleIntent(intent)
-        finish()
+        finishAndRemoveTask()
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         handleIntent(intent)
-        finish()
+        finishAndRemoveTask()
     }
 
     private fun handleIntent(intent: Intent) {
