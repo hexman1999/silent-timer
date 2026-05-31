@@ -2,13 +2,16 @@ package com.silentapp
 
 import android.app.AlertDialog
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
 import android.text.format.DateFormat
+import android.widget.RemoteViews
 import android.widget.Toast
 import java.util.Calendar
 
@@ -32,6 +35,8 @@ class SilentTileService : TileService() {
         }
     }
 
+    private var splitTileSupported = Build.VERSION.SDK_INT >= 33
+
     override fun onStartListening() {
         super.onStartListening()
         tileHandler.removeCallbacks(tileTickRunnable)
@@ -47,6 +52,7 @@ class SilentTileService : TileService() {
     }
 
     override fun onClick() {
+        if (splitTileSupported) return
         try {
             if (!isSecure()) {
                 showPresetDialog()
@@ -56,6 +62,80 @@ class SilentTileService : TileService() {
         } catch (_: Exception) {
             refreshTile()
         }
+    }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        when (intent?.action) {
+            ACTION_ICON_TAP -> handleIconTap()
+            ACTION_LABEL_TAP -> {
+                if (qsTile != null) showPresetDialog()
+            }
+        }
+        return START_NOT_STICKY
+    }
+
+    private fun handleIconTap() {
+        val items = buildCycleList()
+        if (items.isEmpty()) return
+
+        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val pos = if (SilentTimerService.isTimerRunning) 0
+                  else prefs.getInt(KEY_POS, 0) % items.size
+        val current = items[pos]
+
+        if (current.label == "Stop") {
+            Intent(this, SilentTimerService::class.java).apply {
+                action = SilentTimerService.ACTION_CANCEL
+                startForegroundServiceSafe(this@SilentTileService, this)
+            }
+            prefs.edit().putInt(KEY_POS, 0).apply()
+            tileHandler.removeCallbacks(tileTickRunnable)
+            refreshTile()
+            collapseQsPanel()
+            return
+        }
+
+        val nextPos = (pos + 1) % items.size
+        val item = items[nextPos]
+
+        RingerModeManager.applyMode(this, item.mode)
+
+        if (item.seconds > 0) {
+            val intent = Intent(this, SilentTimerService::class.java).apply {
+                action = SilentTimerService.ACTION_START
+                putExtra(SilentTimerService.EXTRA_SECONDS, item.seconds)
+                putExtra(SilentTimerService.EXTRA_MODE, item.mode)
+                putExtra(SilentTimerService.EXTRA_PRESET_ID, item.presetId)
+            }
+            startForegroundServiceSafe(this, intent)
+
+            val endTime = System.currentTimeMillis() + item.seconds * 1000L
+            val cal = Calendar.getInstance().apply { timeInMillis = endTime }
+            val is24 = DateFormat.is24HourFormat(this)
+            val endTimeStr = if (is24) {
+                String.format("%02d:%02d", cal.get(Calendar.HOUR_OF_DAY), cal.get(Calendar.MINUTE))
+            } else {
+                val amPm = if (cal.get(Calendar.HOUR_OF_DAY) < 12) "AM" else "PM"
+                val h12 = when (cal.get(Calendar.HOUR_OF_DAY)) {
+                    0 -> 12; 12 -> 12; else -> cal.get(Calendar.HOUR_OF_DAY) % 12
+                }
+                String.format("%d:%02d %s", h12, cal.get(Calendar.MINUTE), amPm)
+            }
+            val timeStr = formatDuration(item.seconds)
+            val toastText = "${item.label} for $timeStr (until $endTimeStr)"
+
+            Handler(Looper.getMainLooper()).post {
+                Toast.makeText(this, toastText, Toast.LENGTH_LONG).show()
+            }
+        }
+
+        prefs.edit().putInt(KEY_POS, nextPos).apply()
+        tileHandler.removeCallbacks(tileTickRunnable)
+        if (SilentTimerService.isTimerRunning) {
+            tileHandler.post(tileTickRunnable)
+        }
+        refreshTile()
+        collapseQsPanel()
     }
 
     private fun showPresetDialog() {
@@ -137,6 +217,13 @@ class SilentTileService : TileService() {
         else String.format("%d:%02d", m, s)
     }
 
+    private fun getModeDrawable(mode: Int): Int = when (mode) {
+        MODE_SILENT -> R.drawable.ic_silent
+        MODE_VIBRATE -> R.drawable.ic_vibrate
+        MODE_DND -> R.drawable.ic_dnd
+        else -> R.drawable.ic_normal
+    }
+
     private fun collapseQsPanel() {
         @Suppress("DEPRECATION")
         startActivityAndCollapse(
@@ -146,17 +233,7 @@ class SilentTileService : TileService() {
         )
     }
 
-    private fun refreshTile() {
-        val tile = qsTile ?: return
-
-        if (SilentTimerService.isTimerRunning) {
-            val rem = SilentTimerService.endTime - System.currentTimeMillis()
-            tile.label = formatRemaining(rem)
-            tile.state = Tile.STATE_ACTIVE
-            tile.updateTile()
-            return
-        }
-
+    private fun buildCycleList(): List<CycleItem> {
         val presetManager = PresetManager(this)
         val presets = presetManager.loadPresets().map {
             CycleItem(it.label, it.mode, it.totalSeconds, it.id)
@@ -166,28 +243,94 @@ class SilentTileService : TileService() {
             CycleItem("Silent", MODE_SILENT, 0),
             CycleItem("Vibrate", MODE_VIBRATE, 0),
         )
-        val items = presets + ringerModes
 
-        if (items.isEmpty()) {
-            tile.label = getString(R.string.tile_normal)
-            tile.state = Tile.STATE_INACTIVE
-            tile.updateTile()
-            return
+        if (SilentTimerService.isTimerRunning) {
+            val activeId = SilentTimerService.activePresetId
+            val filtered = presets.filter { it.presetId != activeId }
+            return listOf(CycleItem("Stop", MODE_NORMAL, 0)) + filtered + ringerModes
         }
 
-        val pos = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).getInt(KEY_POS, 0) % items.size
-        val current = items[pos]
-        tile.label = current.label
-        tile.state = when (current.mode) {
-            MODE_SILENT, MODE_VIBRATE, MODE_DND -> Tile.STATE_ACTIVE
-            else -> Tile.STATE_INACTIVE
+        return presets + ringerModes
+    }
+
+    private fun refreshTile() {
+        val tile = qsTile ?: return
+
+        val iconRes: Int
+        val label: String
+        val state: Int
+
+        if (SilentTimerService.isTimerRunning) {
+            val rem = SilentTimerService.endTime - System.currentTimeMillis()
+            label = formatRemaining(rem)
+            iconRes = getModeDrawable(SilentTimerService.activeMode)
+            state = Tile.STATE_ACTIVE
+        } else {
+            val items = buildCycleList()
+            if (items.isEmpty()) {
+                label = getString(R.string.tile_normal)
+                iconRes = R.drawable.ic_normal
+                state = Tile.STATE_INACTIVE
+            } else {
+                val pos = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).getInt(KEY_POS, 0) % items.size
+                val current = items[pos]
+                label = current.label
+                iconRes = getModeDrawable(current.mode)
+                state = when (current.mode) {
+                    MODE_SILENT, MODE_VIBRATE, MODE_DND -> Tile.STATE_ACTIVE
+                    else -> Tile.STATE_INACTIVE
+                }
+            }
         }
+
+        tile.label = label
+        tile.state = state
+
+        if (splitTileSupported) {
+            trySetSplitVisual(tile, iconRes, label, state)
+        }
+
         tile.updateTile()
+    }
+
+    private fun trySetSplitVisual(tile: Tile, iconRes: Int, label: String, state: Int) {
+        try {
+            val rv = RemoteViews(packageName, R.layout.qs_tile_visual)
+            rv.setImageViewResource(R.id.tile_icon, iconRes)
+            rv.setTextViewText(R.id.tile_label, label)
+
+            val iconIntent = Intent(this, SilentTileService::class.java).apply { action = ACTION_ICON_TAP }
+            val labelIntent = Intent(this, SilentTileService::class.java).apply { action = ACTION_LABEL_TAP }
+
+            val iconPI = PendingIntent.getService(
+                this, ICON_TAP_REQ, iconIntent,
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+            )
+            val labelPI = PendingIntent.getService(
+                this, LABEL_TAP_REQ, labelIntent,
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+            )
+
+            rv.setOnClickPendingIntent(R.id.tile_icon, iconPI)
+            rv.setOnClickPendingIntent(R.id.tile_label, labelPI)
+
+            val tileVisualClass = Class.forName("android.service.quicksettings.TileService\$TileVisual")
+            val ctor = tileVisualClass.getConstructor(RemoteViews::class.java, Context::class.java)
+            val visual = ctor.newInstance(rv, this)
+            val method = TileService::class.java.getMethod("setTileVisual", tileVisualClass)
+            method.invoke(this, visual)
+        } catch (_: Exception) {
+            splitTileSupported = false
+        }
     }
 
     companion object {
         private const val PREFS_NAME = "silent_timer_tile"
         private const val KEY_POS = "cycle_position"
+        private const val ACTION_ICON_TAP = "icon_tap"
+        private const val ACTION_LABEL_TAP = "label_tap"
+        private const val ICON_TAP_REQ = 3001
+        private const val LABEL_TAP_REQ = 3002
     }
 }
 
