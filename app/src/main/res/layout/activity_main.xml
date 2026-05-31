@@ -59,7 +59,7 @@
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
+                        android:gravity="center"
                         android:padding="20dp">
 
                         <FrameLayout
@@ -83,10 +83,10 @@
                         </FrameLayout>
 
                         <LinearLayout
-                            android:layout_width="0dp"
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="16dp"
-                            android:layout_weight="1"
+                            android:gravity="center"
                             android:orientation="vertical">
 
                             <TextView
@@ -110,94 +110,96 @@
                         </LinearLayout>
                     </LinearLayout>
 
-                    <LinearLayout
-                        android:id="@+id/timerSection"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:visibility="gone">
-
-                        <View
-                            android:layout_width="match_parent"
-                            android:layout_height="1dp"
-                            android:background="?attr/colorOutlineVariant" />
-
                         <LinearLayout
+                            android:id="@+id/timerSection"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
+                            android:gravity="center"
                             android:orientation="vertical"
-                            android:paddingHorizontal="20dp"
-                            android:paddingTop="16dp"
-                            android:paddingBottom="20dp">
+                            android:visibility="gone">
+
+                            <View
+                                android:layout_width="match_parent"
+                                android:layout_height="1dp"
+                                android:background="?attr/colorOutlineVariant" />
 
                             <LinearLayout
-                                android:layout_width="wrap_content"
+                                android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:background="?attr/colorSecondaryContainer"
-                                android:gravity="center_vertical"
-                                android:paddingHorizontal="10dp"
-                                android:paddingVertical="4dp"
-                                app:shapeAppearance="@style/ShapeAppearance.Material3.Corner.Small">
+                                android:gravity="center"
+                                android:orientation="vertical"
+                                android:paddingHorizontal="20dp"
+                                android:paddingTop="16dp"
+                                android:paddingBottom="20dp">
+
+                                <LinearLayout
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:background="?attr/colorSecondaryContainer"
+                                    android:gravity="center"
+                                    android:paddingHorizontal="10dp"
+                                    android:paddingVertical="4dp"
+                                    app:shapeAppearance="@style/ShapeAppearance.Material3.Corner.Small">
+
+                                    <TextView
+                                        android:id="@+id/activeTimerTitle"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:text="@string/active_timer"
+                                        android:textColor="?attr/colorOnSecondaryContainer"
+                                        android:textSize="12sp"
+                                        android:textStyle="bold" />
+                                </LinearLayout>
 
                                 <TextView
-                                    android:id="@+id/activeTimerTitle"
+                                    android:id="@+id/activeTimerTime"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
-                                    android:text="@string/active_timer"
-                                    android:textColor="?attr/colorOnSecondaryContainer"
-                                    android:textSize="12sp"
+                                    android:layout_marginTop="12dp"
+                                    android:fontFamily="monospace"
+                                    android:letterSpacing="0.05"
+                                    android:text="--:--"
+                                    android:textColor="?attr/colorOnSurface"
+                                    android:textSize="44sp"
                                     android:textStyle="bold" />
-                            </LinearLayout>
 
-                            <TextView
-                                android:id="@+id/activeTimerTime"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="12dp"
-                                android:fontFamily="monospace"
-                                android:letterSpacing="0.05"
-                                android:text="--:--"
-                                android:textColor="?attr/colorOnSurface"
-                                android:textSize="44sp"
-                                android:textStyle="bold" />
+                                <com.google.android.material.progressindicator.LinearProgressIndicator
+                                    android:id="@+id/timerProgress"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="4dp"
+                                    android:layout_marginTop="12dp"
+                                    android:indeterminate="false"
+                                    app:indicatorColor="?attr/colorPrimary"
+                                    app:trackColor="?attr/colorSurfaceVariant" />
 
-                            <com.google.android.material.progressindicator.LinearProgressIndicator
-                                android:id="@+id/timerProgress"
-                                android:layout_width="match_parent"
-                                android:layout_height="4dp"
-                                android:layout_marginTop="12dp"
-                                android:indeterminate="false"
-                                app:indicatorColor="?attr/colorPrimary"
-                                app:trackColor="?attr/colorSurfaceVariant" />
-
-                            <LinearLayout
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="16dp"
-                                android:gravity="center_vertical"
-                                android:orientation="horizontal">
-
-                                <com.google.android.material.button.MaterialButton
-                                    android:id="@+id/btnExtend"
-                                    style="@style/Widget.Material3.Button.TonalButton"
+                                <LinearLayout
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
-                                    android:layout_marginEnd="8dp"
-                                    android:text="@string/notif_extend"
-                                    app:icon="@android:drawable/ic_input_add"
-                                    app:iconSize="16dp" />
+                                    android:layout_marginTop="16dp"
+                                    android:gravity="center"
+                                    android:orientation="horizontal">
 
-                                <com.google.android.material.button.MaterialButton
-                                    android:id="@+id/btnCancelTimer"
-                                    style="@style/Widget.Material3.Button.TonalButton"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="@string/notif_stop"
-                                    app:icon="@android:drawable/ic_menu_close_clear_cancel"
-                                    app:iconSize="16dp" />
+                                    <com.google.android.material.button.MaterialButton
+                                        android:id="@+id/btnExtend"
+                                        style="@style/Widget.Material3.Button.TonalButton"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginEnd="8dp"
+                                        android:text="@string/notif_extend"
+                                        app:icon="@android:drawable/ic_input_add"
+                                        app:iconSize="16dp" />
+
+                                    <com.google.android.material.button.MaterialButton
+                                        android:id="@+id/btnCancelTimer"
+                                        style="@style/Widget.Material3.Button.TonalButton"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:text="@string/notif_stop"
+                                        app:icon="@android:drawable/ic_menu_close_clear_cancel"
+                                        app:iconSize="16dp" />
+                                </LinearLayout>
                             </LinearLayout>
                         </LinearLayout>
-                    </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 

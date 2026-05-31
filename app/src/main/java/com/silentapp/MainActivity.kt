@@ -31,6 +31,7 @@ class MainActivity : AppCompatActivity() {
     private var editMode = false
     private lateinit var presetManager: PresetManager
     private val presets = mutableListOf<Preset>()
+    private var highlightedCard: MaterialCardView? = null
 
     private val handler = Handler(Looper.getMainLooper())
     private var lastTimerRunning = false
@@ -160,6 +161,8 @@ class MainActivity : AppCompatActivity() {
             }
         }
         row.addView(createAddCard(isGrid))
+
+        setupPresetDragDrop(container)
     }
 
     private fun createPresetCard(preset: Preset, isGrid: Boolean): View {
@@ -186,46 +189,9 @@ class MainActivity : AppCompatActivity() {
         val dragHandle = card.findViewById<View>(R.id.dragHandle)
         dragHandle.visibility = if (editMode) View.VISIBLE else View.GONE
         dragHandle.setOnLongClickListener {
-            val data = android.content.ClipData.newPlainText("preset_id", preset.id)
+            val data = android.content.ClipData.newPlainText("drag", "preset:${preset.id}")
             card.startDragAndDrop(data, View.DragShadowBuilder(card), null, 0)
             true
-        }
-
-        card.setOnDragListener { _, event ->
-            when (event.action) {
-                android.view.DragEvent.ACTION_DRAG_STARTED -> {
-                    (event.clipData?.getItemAt(0)?.text?.toString()?.let { it != preset.id }) ?: false
-                }
-                android.view.DragEvent.ACTION_DRAG_ENTERED -> {
-                    card.strokeWidth = 3.dp()
-                    true
-                }
-                android.view.DragEvent.ACTION_DRAG_EXITED -> {
-                    card.strokeWidth = 1.dp()
-                    true
-                }
-                android.view.DragEvent.ACTION_DROP -> {
-                    val draggedId = event.clipData?.getItemAt(0)?.text?.toString()
-                    if (draggedId != null && draggedId != preset.id) {
-                        val fromIdx = presets.indexOfFirst { it.id == draggedId }
-                        val toIdx = presets.indexOfFirst { it.id == preset.id }
-                        if (fromIdx >= 0 && toIdx >= 0) {
-                            val item = presets.removeAt(fromIdx)
-                            presets.add(toIdx, item)
-                            presetManager.savePresets(presets)
-                            updateShortcuts()
-                            card.post { renderPresets() }
-                        }
-                    }
-                    card.strokeWidth = 1.dp()
-                    true
-                }
-                android.view.DragEvent.ACTION_DRAG_ENDED -> {
-                    card.strokeWidth = 1.dp()
-                    true
-                }
-                else -> true
-            }
         }
 
         updatePresetHighlight(card, preset.id)
@@ -262,6 +228,73 @@ class MainActivity : AppCompatActivity() {
             showPresetDialog(null)
         }
         return addCard
+    }
+
+    private fun setupPresetDragDrop(container: ViewGroup) {
+        container.setOnDragListener { _, event ->
+            when (event.action) {
+                android.view.DragEvent.ACTION_DRAG_STARTED -> {
+                    event.clipData?.getItemAt(0)?.text?.toString()?.startsWith("preset:") == true
+                }
+                android.view.DragEvent.ACTION_DRAG_LOCATION -> {
+                    val card = findCardViewAt(event.x, event.y)
+                    if (card != highlightedCard) {
+                        highlightedCard?.strokeWidth = 1.dp()
+                        card?.strokeWidth = 3.dp()
+                        highlightedCard = card
+                    }
+                    true
+                }
+                android.view.DragEvent.ACTION_DROP -> {
+                    val draggedId = event.clipData?.getItemAt(0)?.text?.toString()?.removePrefix("preset:")
+                    if (draggedId != null) {
+                        val targetId = findCardAt(event.x, event.y)
+                        val fromIdx = presets.indexOfFirst { it.id == draggedId }
+                        val toIdx = targetId?.let { presets.indexOfFirst { p -> p.id == it } } ?: -1
+                        if (fromIdx >= 0 && toIdx >= 0 && fromIdx != toIdx) {
+                            val item = presets.removeAt(fromIdx)
+                            presets.add(toIdx, item)
+                            presetManager.savePresets(presets)
+                            updateShortcuts()
+                        }
+                    }
+                    resetDragHighlight()
+                    container.post { renderPresets() }
+                    true
+                }
+                android.view.DragEvent.ACTION_DRAG_EXITED, android.view.DragEvent.ACTION_DRAG_ENDED -> {
+                    resetDragHighlight()
+                    true
+                }
+                else -> true
+            }
+        }
+    }
+
+    private fun findCardAt(x: Float, y: Float): String? {
+        return findCardViewAt(x, y)?.tag as? String
+    }
+
+    private fun findCardViewAt(x: Float, y: Float): MaterialCardView? {
+        val container = findViewById<LinearLayout>(R.id.presetsContainer)
+        for (i in 0 until container.childCount) {
+            val row = container.getChildAt(i) as? ViewGroup ?: continue
+            for (j in 0 until row.childCount) {
+                val card = row.getChildAt(j) as? MaterialCardView ?: continue
+                val cardLeft = row.left + card.left
+                val cardTop = row.top + card.top
+                if (x >= cardLeft && x <= cardLeft + card.width &&
+                    y >= cardTop && y <= cardTop + card.height) {
+                    return card
+                }
+            }
+        }
+        return null
+    }
+
+    private fun resetDragHighlight() {
+        highlightedCard?.strokeWidth = 1.dp()
+        highlightedCard = null
     }
 
     private fun showPresetDialog(preset: Preset?) {
