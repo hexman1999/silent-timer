@@ -21,6 +21,18 @@ class SilentTileService : TileService() {
     }
 
     override fun onClick() {
+        try {
+            if (!isSecure()) {
+                handleClick()
+            } else {
+                unlockAndRun { handleClick() }
+            }
+        } catch (_: Exception) {
+            updateTile()
+        }
+    }
+
+    private fun handleClick() {
         val items = buildCycleList()
         if (items.isEmpty()) return
 
@@ -36,9 +48,7 @@ class SilentTileService : TileService() {
             }
             prefs.edit().putInt(KEY_POS, 0).apply()
             updateTile()
-            startActivityAndCollapse(Intent(this, ShortcutActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK
-            })
+            collapseQsPanel()
             return
         }
 
@@ -78,9 +88,16 @@ class SilentTileService : TileService() {
 
         prefs.edit().putInt(KEY_POS, nextPos).apply()
         updateTile()
-        startActivityAndCollapse(Intent(this, ShortcutActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK
-        })
+        collapseQsPanel()
+    }
+
+    private fun collapseQsPanel() {
+        @Suppress("DEPRECATION")
+        startActivityAndCollapse(
+            Intent(this, ShortcutActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+        )
     }
 
     private fun buildCycleList(): List<CycleItem> {

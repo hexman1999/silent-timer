@@ -34,12 +34,14 @@ class MainActivity : AppCompatActivity() {
 
     private val handler = Handler(Looper.getMainLooper())
     private var lastTimerRunning = false
+    private var lastActivePresetId: String? = null
     private val tickRunnable = object : Runnable {
         override fun run() {
             updateActiveTimerCard()
             updateStatusCard()
-            if (lastTimerRunning != SilentTimerService.isTimerRunning) {
+            if (lastTimerRunning != SilentTimerService.isTimerRunning || lastActivePresetId != SilentTimerService.activePresetId) {
                 lastTimerRunning = SilentTimerService.isTimerRunning
+                lastActivePresetId = SilentTimerService.activePresetId
                 highlightAllPresets()
             }
             handler.postDelayed(this, 1000)
@@ -356,7 +358,7 @@ class MainActivity : AppCompatActivity() {
         val labelView = card.findViewById<TextView>(R.id.presetLabel)
         val baseLabel = labelView.getTag(R.id.presetLabel) as? String ?: ""
         if (isActive) {
-            val spannable = SpannableString("$baseLabel * Active")
+            val spannable = SpannableString("$baseLabel ● Active")
             spannable.setSpan(
                 ForegroundColorSpan(android.graphics.Color.GREEN),
                 baseLabel.length + 1,
