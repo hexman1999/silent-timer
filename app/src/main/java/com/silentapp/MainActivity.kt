@@ -13,7 +13,7 @@ import android.text.style.ForegroundColorSpan
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.transition.TransitionManager
+import android.animation.ValueAnimator
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -183,8 +183,50 @@ class MainActivity : AppCompatActivity() {
         val deleteBtn = card.findViewById<View>(R.id.presetDeleteBtn)
         deleteBtn.visibility = if (editMode) View.VISIBLE else View.GONE
 
-        val reorder = card.findViewById<View>(R.id.reorderButtons)
-        reorder.visibility = if (editMode) View.VISIBLE else View.GONE
+        val dragHandle = card.findViewById<View>(R.id.dragHandle)
+        dragHandle.visibility = if (editMode) View.VISIBLE else View.GONE
+        dragHandle.setOnLongClickListener {
+            val data = android.content.ClipData.newPlainText("preset_id", preset.id)
+            card.startDragAndDrop(data, View.DragShadowBuilder(card), null, 0)
+            true
+        }
+
+        card.setOnDragListener { _, event ->
+            when (event.action) {
+                android.view.DragEvent.ACTION_DRAG_STARTED -> {
+                    (event.clipData?.getItemAt(0)?.text?.toString()?.let { it != preset.id }) ?: false
+                }
+                android.view.DragEvent.ACTION_DRAG_ENTERED -> {
+                    card.strokeWidth = 3.dp().toFloat()
+                    true
+                }
+                android.view.DragEvent.ACTION_DRAG_EXITED -> {
+                    card.strokeWidth = 1.dp().toFloat()
+                    true
+                }
+                android.view.DragEvent.ACTION_DROP -> {
+                    val draggedId = event.clipData?.getItemAt(0)?.text?.toString()
+                    if (draggedId != null && draggedId != preset.id) {
+                        val fromIdx = presets.indexOfFirst { it.id == draggedId }
+                        val toIdx = presets.indexOfFirst { it.id == preset.id }
+                        if (fromIdx >= 0 && toIdx >= 0) {
+                            val item = presets.removeAt(fromIdx)
+                            presets.add(toIdx, item)
+                            presetManager.savePresets(presets)
+                            updateShortcuts()
+                            card.post { renderPresets() }
+                        }
+                    }
+                    card.strokeWidth = 1.dp().toFloat()
+                    true
+                }
+                android.view.DragEvent.ACTION_DRAG_ENDED -> {
+                    card.strokeWidth = 1.dp().toFloat()
+                    true
+                }
+                else -> true
+            }
+        }
 
         updatePresetHighlight(card, preset.id)
 
@@ -200,14 +242,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
         deleteBtn.setOnClickListener { showPresetDialog(preset) }
-
-        val idx = presets.indexOfFirst { it.id == preset.id }
-        card.findViewById<View>(R.id.btnMoveUp).setOnClickListener {
-            if (idx > 0) movePreset(idx, idx - 1)
-        }
-        card.findViewById<View>(R.id.btnMoveDown).setOnClickListener {
-            if (idx < presets.size - 1) movePreset(idx, idx + 1)
-        }
 
         return card
     }
@@ -228,14 +262,6 @@ class MainActivity : AppCompatActivity() {
             showPresetDialog(null)
         }
         return addCard
-    }
-
-    private fun movePreset(from: Int, to: Int) {
-        val item = presets.removeAt(from)
-        presets.add(to, item)
-        presetManager.savePresets(presets)
-        renderPresets()
-        updateShortcuts()
     }
 
     private fun showPresetDialog(preset: Preset?) {
@@ -403,18 +429,54 @@ class MainActivity : AppCompatActivity() {
             title.text = "$modeLabel — ${getString(R.string.active_timer)}"
 
             if (section.visibility != View.VISIBLE) {
-                TransitionManager.beginDelayedTransition(
-                    findViewById<View>(R.id.statusCard) as ViewGroup
-                )
-                section.visibility = View.VISIBLE
+                smoothExpand(section)
             }
         } else {
             if (section.visibility == View.VISIBLE) {
-                TransitionManager.beginDelayedTransition(
-                    findViewById<View>(R.id.statusCard) as ViewGroup
-                )
-                section.visibility = View.GONE
+                smoothCollapse(section)
             }
+        }
+    }
+
+    private fun smoothExpand(view: View) {
+        view.measure(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+        val targetHeight = view.measuredHeight
+        view.layoutParams.height = 0
+        view.visibility = View.VISIBLE
+        view.alpha = 0f
+        ValueAnimator.ofInt(0, targetHeight).apply {
+            addUpdateListener { anim ->
+                view.layoutParams.height = anim.animatedValue as Int
+                view.requestLayout()
+                view.alpha = anim.animatedFraction
+            }
+            interpolator = android.view.animation.DecelerateInterpolator()
+            duration = 300
+            start()
+        }
+    }
+
+    private fun smoothCollapse(view: View) {
+        val startHeight = view.height
+        ValueAnimator.ofInt(startHeight, 0).apply {
+            addUpdateListener { anim ->
+                view.layoutParams.height = anim.animatedValue as Int
+                view.requestLayout()
+                view.alpha = 1f - anim.animatedFraction
+            }
+            addListener(object : android.animation.Animator.AnimatorListener {
+                override fun onAnimationEnd(animation: android.animation.Animator) {
+                    view.layoutParams.height = ViewGroup.LayoutParams.WRAP_CONTENT
+                    view.visibility = View.GONE
+                    view.alpha = 1f
+                }
+                override fun onAnimationStart(animation: android.animation.Animator) {}
+                override fun onAnimationCancel(animation: android.animation.Animator) {}
+                override fun onAnimationRepeat(animation: android.animation.Animator) {}
+            })
+            interpolator = android.view.animation.DecelerateInterpolator()
+            duration = 300
+            start()
         }
     }
 
