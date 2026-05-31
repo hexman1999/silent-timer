@@ -103,6 +103,7 @@ class SilentTimerService : Service() {
         activePresetId = presetId
         SilentTimerService.endTime = endTime
         SilentTimerService.totalDuration = totalDuration
+        BootReceiver.saveState(this, endTime, mode, presetId)
         updateNotification()
         handler.postDelayed(tickRunnable, 1000)
         startForeground(NOTIFICATION_ID, buildNotification())
@@ -121,6 +122,7 @@ class SilentTimerService : Service() {
         isTimerRunning = false
         activePresetId = null
         handler.removeCallbacks(tickRunnable)
+        BootReceiver.clearState(this)
         RingerModeManager.applyModeDeactivate(this)
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
@@ -130,6 +132,7 @@ class SilentTimerService : Service() {
         running = false
         isTimerRunning = false
         activePresetId = null
+        BootReceiver.clearState(this)
         RingerModeManager.applyModeDeactivate(this)
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
